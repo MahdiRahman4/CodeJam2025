@@ -9,11 +9,11 @@ Button,
 ActivityIndicator,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
-
 export default function Auth() {
 const [email, setEmail] = useState('')
 const [password, setPassword] = useState('')
 const [loading, setLoading] = useState(false)
+const [locality, setlocality] = useState('')
 
 async function signInWithEmail() {
     try {

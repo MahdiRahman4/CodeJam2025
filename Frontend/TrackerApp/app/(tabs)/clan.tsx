@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet,Text,View} from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -8,35 +8,23 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+import SearchBar from '@/components/ui/search-bar';
 
 export default function TabTwoScreen() {
   return (
-<View>
-    <View style={style.bg}>
-        <Text style={style.title}>Montreal Leaderboard</Text>
+    <View> 
+      <View style={style.bg}><SearchBar/></View>
+      
     </View>
-    
-</View>
   );
 }
-
-const style = StyleSheet.create({
+  const style = StyleSheet.create({
     bg:{
-backgroundColor: '#A1CEDC',
-position: 'absolute',
-top: 100,
-left: 0,
-right: 0,
-height: 100,
+      backgroundColor: '#A1CEDC',
     }
-    ,title:{
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginTop: 40,
-    }
-    leaderboardContainer:{
-        marginTop: 120,
-        padding: 16,
-    }
-})
+  })
+
+
+
+
+
