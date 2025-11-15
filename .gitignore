@@ -1,0 +1,12 @@
+# Python venv
+Backend/venv/
+
+# Node modules
+Frontend/TrackerApp/node_modules/
+
+# Expo generated
+Frontend/TrackerApp/.expo/
+
+# Misc
+.vscode/
+.DS_Store
