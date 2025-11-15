@@ -68,7 +68,16 @@ export default function TabLayout() {
         options={{
           title: 'Clan',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={60} name="person.3.fill" color={color} />
+            <IconSymbol size={50} name="person.3.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: 'Leaderboard',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={35} name="crown.fill" color={color} />
           ),
         }}
       />
