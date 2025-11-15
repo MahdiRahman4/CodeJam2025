@@ -55,6 +55,15 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: 'Leaderboard',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={35} name="crown.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
@@ -72,15 +81,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="leaderboard"
-        options={{
-          title: 'Leaderboard',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={35} name="crown.fill" color={color} />
-          ),
-        }}
-      />
+      
     </Tabs>
   )
 }
