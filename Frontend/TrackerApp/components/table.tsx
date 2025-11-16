@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Button, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 
 export interface StatsRow {
   name: string;
@@ -117,13 +117,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 12,
     padding: 12,
-    margin: 16,
+    marginVertical: 16,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    width: 360,
+    width: '90%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   title: {
     fontSize: 18,

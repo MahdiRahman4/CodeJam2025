@@ -1,5 +1,4 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet,Text,View} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import StatsTable, { StatsRow } from '../../components/table';
 const data: StatsRow[] = [
   { name: "Aariyan", champion: 'Zed', role: 'Mid', winRate: '53%' },
@@ -9,20 +8,26 @@ const data: StatsRow[] = [
 
 export default function TabTwoScreen() {
   return (
-    
-<View>
-    <View>
-    <Text style={style.title}>Leaderboards</Text>
+    <View style={style.container}>
+      <View>
+        <Text style={style.title}>Leaderboards</Text>
+      </View>
+      <View style={style.leaderboardContainer}>
+        <View style={style.tableWrapper}>
+          <StatsTable data={data} title="Best ... in Montreal" />
+        </View>
+      </View>
     </View>
-    <View style={style.leaderboardContainer}>
-    <StatsTable data={data} title="Best ... in Montreal" />
-    </View>
-</View>
   );
 }
 
 const style = StyleSheet.create({
-    bg:{
+    container:{
+        flex: 1,
+        alignItems: 'center',
+        width: '100%',
+    }
+    ,bg:{
 backgroundColor: '#A1CEDC',
 position: 'absolute',
 top: 100,
@@ -36,18 +41,22 @@ height: 100,
         textAlign: 'center',
         marginTop: 100,
         color: "#fff",
+        width: '100%',
     }
     ,leaderboardContainer:{
         flex: 1,
-        position: 'absolute',
-        top: 150,
-        left: 0,
+        width: '100%',
+    }
+    ,tableWrapper:{
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
     }
     ,leaderboardContainer2:{
         flex: 1,
-        position: 'absolute',
-        top: 400,
-        left: 0,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        width: '100%',
     }
 })
 
