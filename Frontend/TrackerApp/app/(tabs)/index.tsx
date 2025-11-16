@@ -77,106 +77,128 @@ export default function CharacterScreen() {
   const chestOpening = require("../../asset_AARI/Exported/Chest/CATS_GreyChest__opening_AARIALMA.gif");
   const chestThumb = require("../../asset_AARI/Exported/Chest/CATS_GreyChest_Thumbnail_AARIALMA.png");
 
-  const catGif = require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Baseball_AARIALMA.gif");
+    const catGif = require(
+    "../../asset_AARI/Exported/Hats/cat_gifs_nohat/CATS_PinkCat_None_Default_AARIALMA.gif"
+  );
+  const catEarsDownGif = require(
+  "../../asset_AARI/Exported/Hats/cat_gifs_nohat/CATS_PinkCat_None_EarsDown_AARIALMA.gif"
+);
 
-  const itemPool = [
+  // which hat is selected in the inventory
+  const [selectedItem, setSelectedItem] = useState<{
+    id: string;
+    name: string;
+    src: any;
+  } | null>(null);
+
+  // which hat is currently spawned on the screen
+  const [equippedHatSrc, setEquippedHatSrc] = useState<any | null>(null);
+  // which hat id is equipped (for ears up / ears down logic)
+const [equippedHatId, setEquippedHatId] = useState<string | null>(null);
+// force cat gif to "reload" by changing this key
+const [catImageKey, setCatImageKey] = useState(0);
+
+
+const hatPool = [
     {
       id: "baseball",
       name: "Baseball Hat",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Baseball_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Baseball_AARIALMA.gif"),
     },
     {
       id: "beret",
       name: "Beret",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Beret_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Beret_AARIALMA.gif"),
     },
     {
       id: "strawhat",
       name: "Straw Hat",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Strawhat_AARIALMA.gif"),
-    },
-    {
-      id: "astronaut",
-      name: "Astronaut",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Astronaut_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Strawhat_AARIALMA.gif"),
     },
     {
       id: "bowler",
       name: "Bowler Hat",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Bowler_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Bowler_AARIALMA.gif"),
     },
     {
       id: "chef",
       name: "Chef Hat",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Chef_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Chef_AARIALMA.gif"),
     },
     {
       id: "fez",
       name: "Fez",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Fez_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Fez_AARIALMA.gif"),
     },
     {
       id: "sailor",
       name: "Sailor Hat",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Sailor_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Sailor_AARIALMA.gif"),
     },
     {
       id: "sheriff",
       name: "Sheriff Hat",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Sheriff_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Sheriff_AARIALMA.gif"),
     },
     {
       id: "turban",
       name: "Turban",
-      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Turban_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/hats_gifs_10x/CATS_Hats10x_Turban_AARIALMA.gif"),
     },
   ];
-
   // handle chest opening lifecycle
-  const openChest = (side: "left" | "right") => {
-    const now = Date.now();
-    // Get list of already-collected item IDs
-    const collectedIds = new Set(inventory.map((i) => i.id));
-    // Filter out already-collected items
-    const availableItems = itemPool.filter((item) => !collectedIds.has(item.id));
+const openChest = (side: "left" | "right") => {
+  const now = Date.now();
 
-    if (availableItems.length === 0) {
-      console.log("All items already collected!");
-      return; // Don't open if no items left
-    }
+  // already-collected hats
+  const collectedIds = new Set(inventory.map((i) => i.id));
 
-    if (side === "left") {
-      if (leftNextAvailable && now < leftNextAvailable) return; // still cooling down
-      setLeftChest("opening");
-      const next = now + LEFT_COOLDOWN_MS;
-      setLeftNextAvailable(next);
-      AsyncStorage.setItem(LEFT_KEY, String(next)).catch(() => {});
-      setTimeout(() => {
-        const item = availableItems[Math.floor(Math.random() * availableItems.length)];
-        setPopupItem(item);
-        setInventory((prev) => [...prev, item]);
-        setLeftChest("opened");
-        setTimeout(() => setLeftChest("cooldown"), 600);
-        const ms = next - Date.now();
-        if (ms > 0) setTimeout(() => setLeftChest("moving"), ms + 50);
-      }, 1400);
-    } else {
-      if (rightNextAvailable && now < rightNextAvailable) return; // still cooling down
-      setRightChest("opening");
-      const next = now + RIGHT_COOLDOWN_MS;
-      setRightNextAvailable(next);
-      AsyncStorage.setItem(RIGHT_KEY, String(next)).catch(() => {});
-      setTimeout(() => {
-        const item = availableItems[Math.floor(Math.random() * availableItems.length)];
-        setPopupItem(item);
-        setInventory((prev) => [...prev, item]);
-        setRightChest("opened");
-        setTimeout(() => setRightChest("cooldown"), 600);
-        const ms = next - Date.now();
-        if (ms > 0) setTimeout(() => setRightChest("moving"), ms + 50);
-      }, 1400);
-    }
+  // available hats (uncollected)
+  const availableHats = hatPool.filter((hat) => !collectedIds.has(hat.id));
+
+  if (availableHats.length === 0) {
+    console.log("All hats already collected!");
+    return;
+  }
+
+  const openForSide = (setChest: (s: ChestState) => void,
+                      cooldownMs: number,
+                      setNextAvailable: (n: number) => void,
+                      storageKey: string) => {
+    setChest("opening");
+    const next = now + cooldownMs;
+    setNextAvailable(next);
+    AsyncStorage.setItem(storageKey, String(next)).catch(() => {});
+
+    setTimeout(() => {
+      const hat =
+        availableHats[Math.floor(Math.random() * availableHats.length)];
+
+      setPopupItem(hat);                 // popup shows HAT gif
+      setInventory((prev) => [...prev, hat]); // inventory stores HAT gif
+
+      setChest("opened");
+      setTimeout(() => setChest("cooldown"), 600);
+
+      const ms = next - Date.now();
+      if (ms > 0) setTimeout(() => setChest("moving"), ms + 50);
+    }, 1400);
   };
+
+  if (side === "left") {
+    if (leftNextAvailable && now < leftNextAvailable) return;
+    openForSide(setLeftChest, LEFT_COOLDOWN_MS, setLeftNextAvailable, LEFT_KEY);
+  } else {
+    if (rightNextAvailable && now < rightNextAvailable) return;
+    openForSide(
+      setRightChest,
+      RIGHT_COOLDOWN_MS,
+      setRightNextAvailable,
+      RIGHT_KEY
+    );
+  }
+};
+
 
   // load persisted next-available times
   useEffect(() => {
@@ -212,19 +234,32 @@ export default function CharacterScreen() {
   }, []);
 
   // Debug: reset timers
-  const resetTimers = async () => {
-    try {
-      await AsyncStorage.removeItem(LEFT_KEY);
-      await AsyncStorage.removeItem(RIGHT_KEY);
-      setLeftNextAvailable(null);
-      setRightNextAvailable(null);
-      setLeftChest("moving");
-      setRightChest("moving");
-      console.log("Timers reset!");
-    } catch (e) {
-      console.error("Failed to reset:", e);
-    }
-  };
+const resetTimers = async () => {
+  try {
+    await AsyncStorage.removeItem(LEFT_KEY);
+    await AsyncStorage.removeItem(RIGHT_KEY);
+
+    // reset chests
+    setLeftNextAvailable(null);
+    setRightNextAvailable(null);
+    setLeftChest("moving");
+    setRightChest("moving");
+
+    // 🔥 reset inventory + hat + cat
+    setInventory([]);
+    setSelectedItem(null);
+    setEquippedHatSrc(null);
+    setEquippedHatId(null);
+
+    // if you added catImageKey earlier, also bump it so gif restarts:
+    // setCatImageKey(k => k + 1);
+
+    console.log("Timers + inventory reset!");
+  } catch (e) {
+    console.error("Failed to reset:", e);
+  }
+};
+
 
   // Expose reset function globally for dev
   useEffect(() => {
@@ -398,24 +433,28 @@ export default function CharacterScreen() {
 
   // 🔸 swipe left → animate (fall + clone slide) then go to rival
   //    swipe right → straight to leaderboard
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => {
-        const { dx, dy } = gesture;
-        return Math.abs(dx) > 10 && Math.abs(dy) < 10;
-      },
-      onPanResponderRelease: (_, gesture) => {
-        const { dx } = gesture;
+ const panResponder = PanResponder.create({
+  onMoveShouldSetPanResponder: (_, gesture) => {
+    // 🔥 block swipes if inventory or popup is open
+    if (showInventory || popupItem) return false;
 
-        // Instant navigation only — no local animation.
-        if (dx < -50) {
-          router.push("/rival");
-        } else if (dx > 50) {
-          router.push("/leaderboard");
-        }
-      },
-    })
-  ).current;
+    const { dx, dy } = gesture;
+    return Math.abs(dx) > 10 && Math.abs(dy) < 10;
+  },
+  onPanResponderRelease: (_, gesture) => {
+    // 🔥 safety check again
+    if (showInventory || popupItem) return;
+
+    const { dx } = gesture;
+
+    if (dx < -50) {
+      router.push("/rival");
+    } else if (dx > 50) {
+      router.push("/leaderboard");
+    }
+  },
+});
+
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
@@ -424,17 +463,6 @@ export default function CharacterScreen() {
         style={styles.imageBackground}
         resizeMode="contain"
       >
-        {/* namebar */}
-        <Animated.Image
-          source={require("../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMANamebar BG.png")}
-          style={namebarAnimatedStyle}
-        />
-
-        {/* main falling circle */}
-        <Animated.Image
-          source={require("../../asset_AARI/Exported/Rivals/CATS_GachiBG_AARIALMACircle.png")}
-          style={circleAnimatedStyle}
-        />
 
         {/* duplicate circle that slides right at the bottom */}
         <Animated.Image
@@ -461,12 +489,31 @@ export default function CharacterScreen() {
 
         {/* Center cat (click to open inventory) */}
         <Pressable
-          style={styles.catContainer}
-          onPress={() => setShowInventory(true)}
-          accessibilityLabel="Open inventory"
-        >
-          <Image source={catGif} style={styles.catImage} />
-        </Pressable>
+  style={styles.catContainer}
+  onPress={() => setShowInventory(true)}
+  accessibilityLabel="Open inventory"
+>
+  <Image
+    key={catImageKey}  // 👈 this makes React Native remount the image
+    source={
+      equippedHatId &&
+      ["turban", "chef", "sheriff", "bowler"].includes(equippedHatId)
+        ? catEarsDownGif
+        : catGif
+    }
+    style={styles.catImage}
+  />
+</Pressable>
+
+
+{/* Spawned hat (positioned via styles.hatImage) */}
+{/* Spawned hat (positioned via styles.hatImage) */}
+{equippedHatSrc && !showInventory && (  // hide while inventory open
+  <View pointerEvents="none" style={styles.hatWrapper}>
+    <Image source={equippedHatSrc} style={styles.hatImage} />
+  </View>
+)}
+
 
         {/* Item popup (after opening) */}
         {popupItem && (
@@ -567,35 +614,62 @@ export default function CharacterScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Inventory</Text>
             <FlatList
-              data={inventory}
-              keyExtractor={(i) => i.id + Math.random()}
-              horizontal
-              renderItem={({ item }) => (
-                <View style={styles.invItem}>
-                  <Image source={item.src} style={styles.invImage} />
-                  <Text style={styles.invName}>{item.name}</Text>
-                </View>
-              )}
-            />
-            <TouchableOpacity
-              onPress={() => setShowInventory(false)}
-              style={styles.modalClose}
-            >
-              <Text style={{ color: "white" }}>Close</Text>
-            </TouchableOpacity>
+  data={inventory}
+  keyExtractor={(i) => i.id + Math.random()}
+  horizontal
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.invItem,
+        selectedItem?.id === item.id && styles.invItemSelected, // optional highlight
+      ]}
+      onPress={() => setSelectedItem(item)}
+    >
+      <Image source={item.src} style={styles.invImage} />
+      <Text style={styles.invName}>{item.name}</Text>
+    </TouchableOpacity>
+  )}
+/>
+
+ <TouchableOpacity
+  onPress={() => {
+    if (selectedItem) {
+      const hat = hatPool.find((h) => h.id === selectedItem.id);
+      if (hat) {
+        setEquippedHatSrc(hat.src);   // show correct hat gif
+        setEquippedHatId(hat.id);     // remember which hat is on
+        setCatImageKey((k) => k + 1); // 🔥 force cat gif to restart
+      }
+    }
+    setShowInventory(false);
+  }}
+  style={styles.modalClose}
+>
+  <Text style={{ color: "white" }}>Close</Text>
+</TouchableOpacity>
+
+
+
+
           </View>
         </View>
       </Modal>
 
       {/* Dev: Reset button */}
-      <TouchableOpacity onPress={resetTimers} style={styles.resetButton}>
-        <Text style={styles.resetButtonText}>Reset</Text>
-      </TouchableOpacity>
+      <TouchableOpacity
+  onPress={resetTimers}
+  style={styles.resetButton}
+  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // 🔥 bigger tap area
+>
+  <Text style={styles.resetButtonText}>Reset</Text>
+</TouchableOpacity>
+
 
       <Animated.View style={[styles.buttonContainer, animatedStyle]} />
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -661,6 +735,9 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     resizeMode: "contain",
+    transform: [{ scale: 4 }],
+    position: "absolute",
+    top: -80,
   },
   popupContainer: {
     position: "absolute",
@@ -707,9 +784,9 @@ const styles = StyleSheet.create({
   },
   chestBar: {
     position: "absolute",
-    bottom: "8%",
-    left: "5%",
-    right: "5%",
+    bottom: 140,
+    left: 46,
+    right: 50,
     height: 140,
     flexDirection: "row",
     alignItems: "center",
@@ -720,11 +797,13 @@ const styles = StyleSheet.create({
     height: 140,
     justifyContent: "center",
     alignItems: "center",
+    transform: [{ scale: 1.2 }],
   },
   chestImage: {
     width: 110,
     height: 110,
     resizeMode: "contain",
+
   },
   chestCenterSpacer: {
     flex: 1,
@@ -806,18 +885,39 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  resetButton: {
-    position: "absolute",
-    top: 40,
-    right: 12,
-    backgroundColor: "#666",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
+resetButton: {
+  position: "absolute",
+  top: 40,
+  right: 12,
+  backgroundColor: "#666",
+  paddingHorizontal: 16,   // a bit larger
+  paddingVertical: 8,
+  borderRadius: 8,
+  zIndex: 50,              // 🔥 keep it visually on top of other stuff
+},
+
   resetButtonText: {
     color: "#FFF",
     fontSize: 12,
     fontWeight: "600",
   },
+  invItemSelected: {
+  borderWidth: 2,
+  borderColor: "#471B2B",
+  borderRadius: 8,
+}, hatWrapper: {
+  position: "absolute",
+  top: 270,   // same as you used before
+  left: 160,
+  // no zIndex here → keeps it under modal
+},
+hatImage: {
+  width: 120,
+  height: 120,
+  resizeMode: "contain",
+  transform: [{ scale: 4 }],  // tweak or remove if too big
+},
+
+
+
 });
