@@ -123,7 +123,7 @@ export default StatsTable;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#111827',
+    backgroundColor: '#A65F36',
     borderRadius: 12,
     padding: 12,
     elevation: 4,
@@ -132,13 +132,15 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     width: '100%',
-    flex: 1,           
+    flex: 1,    
   },
   title: {
-    fontSize: 18,
+    fontSize: 25,
     fontWeight: '600',
-    color: '#E5E7EB',
+    color: '#000',
     marginBottom: 8,
+    fontFamily:"Jersey10_400Regular",
+
   },
   row: {
     flexDirection: 'row',
@@ -147,12 +149,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   headerRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#4B5563',
     paddingVertical: 6,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#BC8845',
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
+    
   },
   body: {
     marginTop: 4,
@@ -161,14 +162,20 @@ const styles = StyleSheet.create({
   cell: {
     paddingVertical: 6,
     paddingHorizontal: 4,
-    color: '#E5E7EB',
-    fontSize: 12,
+    color: '#000',
+    fontSize: 20,
+    fontFamily:"Jersey10_400Regular"
+      
+
+   
   },
   headerCell: {
     fontWeight: '700',
     textTransform: 'uppercase',
-    fontSize: 10,
-    letterSpacing: 0.5,
+    fontSize: 18,
+    letterSpacing: 0.5,      
+    fontFamily:"Jersey10_400Regular"
+
   },
   nameCol: {
     flex: 2,
@@ -178,20 +185,25 @@ const styles = StyleSheet.create({
     textAlign: 'center' as const,
   },
   evenRow: {
-    backgroundColor: '#030712',
+    backgroundColor: '#893F30',
   },
   oddRow: {
-    backgroundColor: '#020617',
+    backgroundColor: '#682A2E',
   },
     visionCol: { 
     fontWeight: '700',
     textTransform: 'uppercase',
-    fontSize: 9,
+    fontSize: 16,
     letterSpacing: 0,
+        fontFamily:"Jersey10_400Regular"
+
 },
 impactCol: { 
     fontWeight: '700',
     textTransform: 'uppercase',
-    fontSize:9,
+    fontSize:16,
     letterSpacing: 0,
+        fontFamily:"Jersey10_400Regular"
+
+
 }});

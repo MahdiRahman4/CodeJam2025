@@ -6,6 +6,7 @@ import {
   View,
   ActivityIndicator,
   Alert,
+  ImageBackground,
 } from 'react-native';
 import StatsTable, { StatsRow } from '../../components/table';
 import { supabase } from '@/lib/supabase';
@@ -20,12 +21,7 @@ const TabTwoScreen = () => {
       try {
         setLoading(true);
 
-        // 1) Get current auth user
-        const {
-          data: authData,
-          error: userError,
-        } = await supabase.auth.getUser();
-
+        const { data: authData, error: userError } = await supabase.auth.getUser();
         if (userError || !authData?.user) {
           console.log(userError);
           Alert.alert('Error', 'Not logged in');
@@ -34,11 +30,7 @@ const TabTwoScreen = () => {
 
         const userId = authData.user.id;
 
-        // 2) Get this user's Riot ID from profiles
-        const {
-          data: profile,
-          error: profileError,
-        } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('riotID')
           .eq('id', userId)
@@ -59,11 +51,7 @@ const TabTwoScreen = () => {
           return;
         }
 
-        // 3) Find this player's region from summaries
-        const {
-          data: mySummary,
-          error: summaryError,
-        } = await supabase
+        const { data: mySummary, error: summaryError } = await supabase
           .from('summaries')
           .select('region')
           .eq('game_name', riotID)
@@ -78,7 +66,6 @@ const TabTwoScreen = () => {
         const regionValue = mySummary?.region ?? null;
         setRegion(regionValue);
 
-        // 4) Load leaderboard rows filtered by that region
         let query = supabase
           .from('summaries')
           .select(
@@ -117,48 +104,58 @@ const TabTwoScreen = () => {
     fetchSummaries();
   }, []);
 
-  const title = region
-    ? `Best Players in ${region}`
-    : 'Best Players';
+  const title = region ? `Best Players in ${region}` : 'Best Players';
 
   return (
-    <View style={style.container}>
-      <Text style={style.title}>Leaderboards</Text>
+    <ImageBackground
+      source={require('../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMAMain Color.png')}
+      style={style.background}         // full-screen background
+      resizeMode="cover"
+    >
+      {/* overlay content on top of background */}
+      <View style={style.container}>
+        <Text style={{fontSize: 40,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 80,
+    marginBottom: 16,
+    color: '#000',
+    width: '100%',
+    fontFamily:"Jersey10_400Regular"
+    }}>Leaderboards</Text>
 
-      <View style={style.leaderboardContainer}>
-        <View style={style.tableWrapper}>
-          {loading ? (
-            <ActivityIndicator />
-          ) : (
-            <StatsTable data={rows} title={title} />
-          )}
+        <View style={style.leaderboardContainer}>
+          <View style={style.tableWrapper}>
+            {loading ? (
+              <ActivityIndicator />
+            ) : (
+              <StatsTable data={rows} title={title} />
+            )}
+          </View>
         </View>
-      </View>
 
-      <Pressable onPress={LogOut}>
-        <Text
-          style={{
-            fontSize: 24,
-            color: 'white',
-            position: 'absolute',
-            bottom: 40,
-          }}
-        >
-          Log Out
-        </Text>
-      </Pressable>
-    </View>
+        <Pressable onPress={LogOut}>
+          <Text style={style.logoutText}>Log Out</Text>
+        </Pressable>
+      </View>
+    </ImageBackground>
   );
 };
 
 export default TabTwoScreen;
 
 const style = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
     alignItems: 'center',
     width: '100%',
-    backgroundColor: '#020617',
+    // optional: dark overlay on top of image
+    // backgroundColor: 'rgba(0,0,0,0.3)',
   },
   title: {
     fontSize: 24,
@@ -177,6 +174,12 @@ const style = StyleSheet.create({
     flex: 1,
     width: '100%',
     paddingHorizontal: 12,
+  },
+  logoutText: {
+    fontSize: 24,
+    color: 'white',
+    position: 'absolute',
+    bottom: 40,
   },
 });
 
