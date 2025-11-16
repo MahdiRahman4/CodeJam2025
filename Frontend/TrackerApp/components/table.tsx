@@ -58,8 +58,8 @@ const StatsTable: React.FC<StatsTableProps> = ({
         <Text style={[styles.cell, styles.headerCell, styles.nameCol]}>
           Name
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col]}>
-          Impact
+        <Text style={[styles.cell, styles.headerCell, styles.col,styles.impactCol]}>
+          Score
         </Text>
         <Text style={[styles.cell, styles.headerCell, styles.col]}>
           KDA
@@ -73,7 +73,7 @@ const StatsTable: React.FC<StatsTableProps> = ({
         <Text style={[styles.cell, styles.headerCell, styles.col]}>
           Gold
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+        <Text style={[styles.cell, styles.headerCell, styles.col,styles.visionCol]}>
           Vision
         </Text>
         
@@ -95,24 +95,23 @@ const StatsTable: React.FC<StatsTableProps> = ({
               {item.name}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {item.avg_impact_score.toFixed(1)}
+              {Math.trunc(item.avg_impact_score*10)}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {item.avg_kda.toFixed(2)}
+              {item.avg_kda.toFixed(1)}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {Math.round(item.avg_damage)}
+              {Math.trunc(Math.round(item.avg_damage)/1000)}K
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.trunc(item.avg_cs)}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.trunc(Math.round(item.avg_gold)/1000)}K
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
               {item.avg_vision_score.toFixed(1)}
             </Text>
-            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {item.avg_cs.toFixed(1)}
-            </Text>
-            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {Math.round(item.avg_gold)}
-            </Text>
-            
           </View>
         ))}
       </ScrollView>
@@ -133,7 +132,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     width: '100%',
-    flex: 1,           // 👈 let the card grow to fill parent
+    flex: 1,           
   },
   title: {
     fontSize: 18,
@@ -157,9 +156,7 @@ const styles = StyleSheet.create({
   },
   body: {
     marginTop: 4,
-    flex: 1,           // 👈 fill the card vertically
-    // remove maxHeight if you had it
-    // maxHeight: 200,
+    flex: 1,
   },
   cell: {
     paddingVertical: 6,
@@ -186,4 +183,15 @@ const styles = StyleSheet.create({
   oddRow: {
     backgroundColor: '#020617',
   },
-});
+    visionCol: { 
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    fontSize: 9,
+    letterSpacing: 0,
+},
+impactCol: { 
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    fontSize:9,
+    letterSpacing: 0,
+}});
