@@ -11,8 +11,18 @@ interface ProfileRow {
   rival_profile_id: string | null;
 }
 
+interface PlayerStats {
+  avg_kda_ratio: number;
+  avg_damage_ratio: number;
+  avg_cs_ratio: number;
+  avg_gold_ratio: number;
+  avg_vision_score_ratio: number;
+  avg_impact_score_ratio: number;
+}
+
 const FindRivalScreen: React.FC = () => {
   const [currentProfile, setCurrentProfile] = useState<ProfileRow | null>(null);
+  const [progressValues, setProgressValues] = useState<number[]>([0.3, 0.3, 0.3, 0.3, 0.3]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -37,7 +47,59 @@ const FindRivalScreen: React.FC = () => {
       setCurrentProfile(data as ProfileRow);
     };
 
+    const fetchAverageStats = async () => {
+      try {
+        // Fetch stats for both players
+        const { data: data1, error: error1 } = await supabase
+          .from('player_summaries')
+          .select('avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda')
+          .eq('game_name', 'T3rroth')
+          .eq('tag_line', 'NA1')
+          .maybeSingle();
+
+        const { data: data2, error: error2 } = await supabase
+          .from('player_summaries')
+          .select('avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda')
+          .eq('game_name', 'Plants')
+          .eq('tag_line', '333')
+          .maybeSingle();
+
+        if (error1 || error2) {
+          console.log('Error fetching stats:', error1 || error2);
+          return;
+        }
+
+        if (!data1 || !data2) {
+          console.log('One or both players not found in database');
+          return;
+        }
+
+        // Calculate averages
+        const avgStats: PlayerStats = {
+          avg_damage_ratio: data1.avg_damage /((data1.avg_damage || 0) + (data2.avg_damage || 0)),
+          avg_vision_score_ratio: data1.avg_vision_score / ((data1.avg_vision_score || 0) + (data2.avg_vision_score || 0)),
+          avg_impact_score_ratio: data1.avg_impact_score  / ((data1.avg_impact_score || 0) + (data2.avg_impact_score || 0)),
+          avg_cs_ratio: data1.avg_cs / ((data1.avg_cs || 0) + (data2.avg_cs || 0)),
+          avg_gold_ratio: data1.avg_gold / ((data1.avg_gold || 0) + (data2.avg_gold || 0)),
+          avg_kda_ratio: data1.avg_kda  / ((data1.avg_kda || 0) + (data2.avg_kda || 0)),
+        };
+
+        const ratios = [
+          avgStats.avg_kda_ratio,
+          avgStats.avg_damage_ratio,
+          avgStats.avg_cs_ratio,
+          avgStats.avg_gold_ratio,
+          avgStats.avg_vision_score_ratio,
+        ];
+
+        setProgressValues(ratios);
+      } catch (err) {
+        console.log('Error calculating average stats:', err);
+      }
+    };
+
     loadProfile();
+    fetchAverageStats();
   }, []);
 
   if (!currentProfile) {
@@ -51,31 +113,98 @@ const FindRivalScreen: React.FC = () => {
   return (
     <View style={styles.container2}>
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       />
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMAStats.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMAStats.png')}
         style={styles.statsImage}
         resizeMode="contain"
       />
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMARival Bar.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMARival Bar.png')}
         style={styles.rivalBarImage}
         resizeMode="contain"
       />
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMATitle Bar.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMATitle Bar.png')}
         style={styles.titleBarImage}
         resizeMode="contain"
       />
-      <Progress.Bar progress={0.3} width={200} />
-      <Progress.Bar progress={0.3} width={200} />
-      <Progress.Bar progress={0.3} width={200} />
-      <Progress.Bar progress={0.3} width={200} />
-      <Progress.Bar progress={0.3} width={200} />
-      <Text style={styles.titleText}>Plants#333</Text>
+      <View style={styles.progressContainer}>
+        <View style={styles.statContainer}>
+          <Text style={styles.statLabel}>KDA</Text>
+          <Progress.Bar 
+            progress={progressValues[0]} 
+            width={230} 
+            height={30}
+            color="#a23e8c"
+            unfilledColor="#4f8fba"
+            borderWidth={5}
+            borderColor="#471B2B"
+            borderRadius={0}
+            style={styles.progressBar}
+          />
+        </View>
+        <View style={styles.statContainer}>
+          <Text style={styles.statLabel}>DMG</Text>
+          <Progress.Bar 
+            progress={progressValues[1]} 
+            width={230} 
+            height={30}
+            color="#a23e8c"
+            unfilledColor="#4f8fba"
+            borderWidth={5}
+            borderColor="#471B2B"
+            borderRadius={0}
+            style={styles.progressBar}
+          />
+        </View>
+        <View style={styles.statContainer}>
+          <Text style={styles.statLabel}>CS</Text>
+          <Progress.Bar 
+            progress={progressValues[2]} 
+            width={230} 
+            height={30}
+            color="#a23e8c"
+            unfilledColor="#4f8fba"
+            borderWidth={5}
+            borderColor="#471B2B"
+            borderRadius={0}
+            style={styles.progressBar}
+          />
+        </View>
+        <View style={styles.statContainer}>
+          <Text style={styles.statLabel}>GOLD</Text>
+          <Progress.Bar 
+            progress={progressValues[3]} 
+            width={230} 
+            height={30}
+            color="#a23e8c"
+            unfilledColor="#4f8fba"
+            borderWidth={5}
+            borderColor="#471B2B"
+            borderRadius={0}
+            style={styles.progressBar}
+          />
+        </View>
+        <View style={styles.statContainer}>
+          <Text style={styles.statLabel}>VISION</Text>
+          <Progress.Bar 
+            progress={progressValues[4]} 
+            width={230} 
+            height={30}
+            color="#a23e8c"
+            unfilledColor="#4f8fba"
+            borderWidth={5}
+            borderColor="#471B2B"
+            borderRadius={0}
+            style={styles.progressBar}
+          />
+        </View>
+      </View>
+      <Text style={styles.titleText}>Plants</Text>
       <FloatingButton useBack={true} />
     </View>
   );
@@ -158,6 +287,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 5,
+    textAlign: "center",
+  },
+  progressContainer: {
+    position: "absolute",
+    top: "35%",
+    marginTop: -100,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 6,
+    gap: 10,
+  },
+  progressBar: {
+    marginBottom: 0,
+    borderRadius: 0,
+  },
+  statContainer: {
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  statLabel: {
+    fontFamily: "PixelifySans_500Medium",
+    fontSize: 20,
+    color: "#471B2B",
+    marginBottom: 4,
     textAlign: "center",
   },
 });
