@@ -276,6 +276,16 @@ const FindRivalScreen: React.FC = () => {
           ? (playerData1.avg_impact_score > playerData2.avg_impact_score ? '>' : '<')
           : '-'}
       </Text>
+      <Image
+        source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_PinkCat_Headshot_Default_AARIALMA.gif')}
+        style={styles.leftCatImage}
+        resizeMode="contain"
+      />
+      <Image
+        source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_BlueCat_Headshot_Default_AARIALMA.gif')}
+        style={styles.rightCatImage}
+        resizeMode="contain"
+      />
       <FloatingButton useBack={true} />
     </View>
   );
@@ -408,5 +418,24 @@ const styles = StyleSheet.create({
     color: "#471B2B",
     marginBottom: 4,
     textAlign: "center",
+  },
+  leftCatImage: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    top: "8%",
+    marginTop: 525,
+    left: "-1%",
+    zIndex: 5,
+    transform: [{ scaleX: -1 }],
+  },
+  rightCatImage: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    top: "8%",
+    marginTop: 525,
+    right: "-1%",
+    zIndex: 5,
   },
 });
