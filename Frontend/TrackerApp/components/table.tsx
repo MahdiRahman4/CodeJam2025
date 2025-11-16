@@ -1,16 +1,15 @@
 // components/table.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
 export interface StatsRow {
   name: string;
   avg_impact_score: number;
-  avg_kda: number;              
+  avg_kda: number;
   avg_damage: number;
   avg_cs: number;
   avg_gold: number;
   avg_vision_score: number;
-
 }
 
 interface StatsTableProps {
@@ -28,9 +27,11 @@ const defaultData: StatsRow[] = [
     avg_cs: 180,
     avg_gold: 12000,
     avg_vision_score: 30,
-
   },
 ];
+
+// 👑 player you want pinned at the bottom
+const HIGHLIGHT_PLAYER = 'T3rroth';
 
 const StatsTable: React.FC<StatsTableProps> = ({
   data,
@@ -39,49 +40,64 @@ const StatsTable: React.FC<StatsTableProps> = ({
   const [showRivals, setShowRivals] = useState(false);
 
   const montrealData = data ?? defaultData;
-  const rowsToShow = montrealData;
-  const currentTitle = title;
 
-  const handleToggleBoard = () => {
-    setShowRivals(prev => !prev);
-  };
+  // sort by score (impact) DESC
+  const sorted = [...montrealData].sort(
+    (a, b) => b.avg_impact_score - a.avg_impact_score
+  );
+
+  // split out pinned player (Spech), case-insensitive
+  const normalize = (s: string | null | undefined) =>
+    (s ?? '').trim().toLowerCase();
+
+  const pinnedRow =
+    sorted.find((row) => normalize(row.name) === normalize(HIGHLIGHT_PLAYER)) ||
+    null;
+
+  const rowsToShow = pinnedRow
+    ? sorted.filter(
+        (row) => normalize(row.name) !== normalize(HIGHLIGHT_PLAYER)
+      )
+    : sorted;
+
+  const currentTitle = title;
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{currentTitle}</Text>
-
-      {/* if you want to keep a rivals toggle later, reuse this button */}
-      {/* <Pressable ... onPress={handleToggleBoard}> ... </Pressable> */}
 
       {/* HEADER */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.cell, styles.headerCell, styles.nameCol]}>
           Name
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col,styles.impactCol]}>
+        <Text
+          style={[
+            styles.cell,
+            styles.headerCell,
+            styles.col,
+            styles.impactCol,
+          ]}
+        >
           Score
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col]}>
-          KDA
-        </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col]}>
-          DMG
-        </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col]}>
-          CS
-        </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col]}>
-          Gold
-        </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.col,styles.visionCol]}>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>KDA</Text>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>DMG</Text>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>CS</Text>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>Gold</Text>
+        <Text
+          style={[
+            styles.cell,
+            styles.headerCell,
+            styles.col,
+            styles.visionCol,
+          ]}
+        >
           Vision
         </Text>
-        
-        
-        
       </View>
 
-      {/* BODY */}
+      {/* BODY (scrollable rows EXCEPT pinned player) */}
       <ScrollView style={styles.body}>
         {rowsToShow.map((item, index) => (
           <View
@@ -95,19 +111,20 @@ const StatsTable: React.FC<StatsTableProps> = ({
               {item.name}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {Math.trunc(item.avg_impact_score*10)}
+              {/* score with 1 decimal, e.g. 4.2 */}
+              {item.avg_impact_score.toFixed(1)}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
               {item.avg_kda.toFixed(1)}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {Math.trunc(Math.round(item.avg_damage)/1000)}K
+              {Math.trunc(Math.round(item.avg_damage) / 1000)}K
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
               {Math.trunc(item.avg_cs)}
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
-              {Math.trunc(Math.round(item.avg_gold)/1000)}K
+              {Math.trunc(Math.round(item.avg_gold) / 1000)}K
             </Text>
             <Text style={[styles.cell, styles.col]} numberOfLines={1}>
               {item.avg_vision_score.toFixed(1)}
@@ -115,6 +132,36 @@ const StatsTable: React.FC<StatsTableProps> = ({
           </View>
         ))}
       </ScrollView>
+
+      {/* PINNED ROW (Spech) – fixed at bottom, highlighted */}
+      {pinnedRow && (
+        <View style={styles.pinnedContainer}>
+          <Text style={styles.pinnedLabel}>Pinned Player</Text>
+          <View style={styles.pinnedRow}>
+            <Text style={[styles.cell, styles.nameCol]} numberOfLines={1}>
+              {pinnedRow.name}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {pinnedRow.avg_impact_score.toFixed(1)}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {pinnedRow.avg_kda.toFixed(1)}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.trunc(Math.round(pinnedRow.avg_damage) / 1000)}K
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.trunc(pinnedRow.avg_cs)}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.trunc(Math.round(pinnedRow.avg_gold) / 1000)}K
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {pinnedRow.avg_vision_score.toFixed(1)}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -132,15 +179,14 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     width: '100%',
-    flex: 1,    
+    flex: 1,
   },
   title: {
     fontSize: 25,
     fontWeight: '600',
     color: '#000',
     marginBottom: 8,
-    fontFamily:"Jersey10_400Regular",
-
+    fontFamily: 'Jersey10_400Regular',
   },
   row: {
     flexDirection: 'row',
@@ -153,7 +199,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#BC8845',
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
-    
   },
   body: {
     marginTop: 4,
@@ -164,18 +209,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     color: '#000',
     fontSize: 20,
-    fontFamily:"Jersey10_400Regular"
-      
-
-   
+    fontFamily: 'Jersey10_400Regular',
   },
   headerCell: {
     fontWeight: '700',
     textTransform: 'uppercase',
     fontSize: 18,
-    letterSpacing: 0.5,      
-    fontFamily:"Jersey10_400Regular"
-
+    letterSpacing: 0.5,
+    fontFamily: 'Jersey10_400Regular',
   },
   nameCol: {
     flex: 2,
@@ -190,20 +231,40 @@ const styles = StyleSheet.create({
   oddRow: {
     backgroundColor: '#682A2E',
   },
-    visionCol: { 
+  visionCol: {
     fontWeight: '700',
     textTransform: 'uppercase',
     fontSize: 16,
     letterSpacing: 0,
-        fontFamily:"Jersey10_400Regular"
-
-},
-impactCol: { 
+    fontFamily: 'Jersey10_400Regular',
+  },
+  impactCol: {
     fontWeight: '700',
     textTransform: 'uppercase',
-    fontSize:16,
+    fontSize: 16,
     letterSpacing: 0,
-        fontFamily:"Jersey10_400Regular"
-
-
-}});
+    fontFamily: 'Jersey10_400Regular',
+  },
+  pinnedContainer: {
+    marginTop: 6,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#facc15',
+  },
+  pinnedLabel: {
+    fontSize: 12,
+    color: '#fef9c3',
+    marginBottom: 2,
+    fontFamily: 'Jersey10_400Regular',
+  },
+  pinnedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 40,
+    paddingHorizontal: 8,
+    backgroundColor: '#fef3c7', // highlight
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+});

@@ -1,6 +1,7 @@
+// app/(tabs)/leaderboard.tsx
+
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -15,30 +16,21 @@ import { supabase } from '@/lib/supabase';
 
 const TabTwoScreen = () => {
   const router = useRouter();
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => {
-        const { dx, dy } = gesture;
-        return Math.abs(dx) > 10 && Math.abs(dy) < 10;
-      },
-      // capture the gesture before child scroll views (table) so horizontal
-      // swipes are recognized even when the table/FlatList is handling touches.
-      onMoveShouldSetPanResponderCapture: (_, gesture) => {
-        const { dx, dy } = gesture;
-        return Math.abs(dx) > 10 && Math.abs(dy) < 10;
-      },
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 10 && Math.abs(g.dy) < 10,
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dx) > 10 && Math.abs(g.dy) < 10,
       onStartShouldSetPanResponderCapture: () => false,
-      onPanResponderRelease: (_, gesture) => {
-        const { dx } = gesture;
-        if (dx < -50) {
-          router.push("/");  
-        } else if (dx > 50) {
-          router.push("/rival");
-        }
-
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -50) router.push('/');      // left → home
+        else if (g.dx > 50) router.push('/rival'); // right → rival
       },
     })
   ).current;
+
   const [rows, setRows] = useState<StatsRow[]>([]);
   const [region, setRegion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,79 +40,82 @@ const TabTwoScreen = () => {
       try {
         setLoading(true);
 
-        const { data: authData, error: userError } = await supabase.auth.getUser();
-        if (userError || !authData?.user) {
-          console.log(userError);
+        // Auth
+        const { data: authData, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !authData?.user) {
           Alert.alert('Error', 'Not logged in');
           return;
         }
 
-        const userId = authData.user.id;
+        const uid = authData.user.id;
 
-        const { data: profile, error: profileError } = await supabase
+        // Get riotID
+        const { data: profile, error: pErr } = await supabase
           .from('profiles')
           .select('riotID')
-          .eq('id', userId)
+          .eq('id', uid)
           .single();
 
-        if (profileError || !profile) {
-          console.log(profileError);
+        if (pErr || !profile) {
           Alert.alert('Error', 'Could not load your profile');
           return;
         }
 
-        const riotID = profile.riotID as string | null;
-        if (!riotID) {
-          Alert.alert(
-            'No Riot ID',
-            'Please link your Riot account before viewing the leaderboard.'
-          );
+        if (!profile.riotID) {
+          Alert.alert('No Riot ID', 'Please link your Riot account first.');
           return;
         }
 
-        const { data: mySummary, error: summaryError } = await supabase
+        const riotID = profile.riotID as string;
+
+        // User region from player_summaries
+        const { data: mySummary, error: summaryErr } = await supabase
           .from('player_summaries')
           .select('region')
           .eq('game_name', riotID)
           .maybeSingle();
 
-        if (summaryError) {
-          console.log(summaryError);
+        if (summaryErr) {
           Alert.alert('Error', 'Could not determine your region');
           return;
         }
 
-        const regionValue = mySummary?.region ?? null;
+        const regionValue = mySummary?.region ?? "NA1";
         setRegion(regionValue);
 
-        let query = supabase
+        // Leaderboard query: order by impact score (score) desc
+        let q = supabase
           .from('player_summaries')
           .select(
-            'game_name, avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda, region'
+            'game_name, avg_impact_score, avg_kda, avg_damage, avg_cs, avg_gold, avg_vision_score, region'
           )
-          .order('avg_kda', { ascending: false });
+          .order('avg_impact_score', { ascending: false });
 
         if (regionValue) {
-          query = query.eq('region', regionValue);
+          q = q.eq('region', regionValue);
         }
 
-        const { data, error } = await query;
+        const { data: lb, error: lbErr } = await q;
 
-        if (error) {
-          console.log(error);
+        if (lbErr) {
           Alert.alert('Error', 'Could not load leaderboard');
           return;
         }
 
-        const mapped: StatsRow[] = (data ?? []).map((row: any) => ({
-          name: row.game_name,
-          avg_damage: row.avg_damage ?? 0,
-          avg_vision_score: row.avg_vision_score ?? 0,
-          avg_impact_score: row.avg_impact_score ?? 0,
-          avg_cs: row.avg_cs ?? 0,
-          avg_gold: row.avg_gold ?? 0,
-          avg_kda: row.avg_kda ?? 0,
-        }));
+        // map to StatsRow[] – keep numeric, let table format to 1 decimal
+        const mapped: StatsRow[] =
+          lb?.map((row: any) => ({
+            name: row.game_name,
+            avg_impact_score: (row.avg_impact_score*10) ?? 0,
+            avg_kda: row.avg_kda ?? 0,
+            avg_damage: row.avg_damage ?? 0,
+            avg_cs: row.avg_cs ?? 0,
+            avg_gold: row.avg_gold ?? 0,
+            avg_vision_score: row.avg_vision_score ?? 0,
+          })) ?? [];
+
+        // safety sort by score desc
+        mapped.sort((a, b) => b.avg_impact_score - a.avg_impact_score);
 
         setRows(mapped);
       } finally {
@@ -136,24 +131,15 @@ const TabTwoScreen = () => {
   return (
     <ImageBackground
       source={require('../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMAMain Color.png')}
-      style={style.background}         // full-screen background
+      style={styles.background}
       resizeMode="cover"
       {...panResponder.panHandlers}
     >
-      {/* overlay content on top of background */}
-      <View style={style.container}>
-        <Text style={{fontSize: 40,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 80,
-    marginBottom: 16,
-    color: '#000',
-    width: '100%',
-    fontFamily:"Jersey10_400Regular"
-    }}>Leaderboards</Text>
+      <View style={styles.container}>
+        <Text style={styles.title}>Leaderboards</Text>
 
-        <View style={style.leaderboardContainer}>
-          <View style={style.tableWrapper}>
+        <View style={styles.leaderboardContainer}>
+          <View style={styles.tableWrapper}>
             {loading ? (
               <ActivityIndicator />
             ) : (
@@ -168,27 +154,18 @@ const TabTwoScreen = () => {
 
 export default TabTwoScreen;
 
-const style = StyleSheet.create({
-  background: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    width: '100%',
-    // optional: dark overlay on top of image
-    // backgroundColor: 'rgba(0,0,0,0.3)',
-  },
+const styles = StyleSheet.create({
+  background: { flex: 1, width: '100%', height: '100%' },
+  container: { flex: 1, alignItems: 'center', width: '100%' },
   title: {
-    fontSize: 24,
+    fontSize: 40,
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 80,
     marginBottom: 16,
-    color: '#fff',
+    color: '#000',
     width: '100%',
+    fontFamily: 'Jersey10_400Regular',
   },
   leaderboardContainer: {
     flex: 0.9,
@@ -199,14 +176,4 @@ const style = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 12,
   },
-  logoutText: {
-    fontSize: 24,
-    color: 'white',
-    position: 'absolute',
-    bottom: 40,
-  },
 });
-
-const LogOut = () => {
-  supabase.auth.signOut();
-};
