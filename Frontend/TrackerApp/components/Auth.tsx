@@ -14,22 +14,6 @@ const [email, setEmail] = useState('')
 const [password, setPassword] = useState('')
 const [loading, setLoading] = useState(false)
 const [locality, setlocality] = useState('')
-
-async function signInWithEmail() {
-    try {
-setLoading(true)
-const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-})
-if (error) {
-        Alert.alert('Sign in error', error.message)
-}
-    } finally {
-setLoading(false)
-    }
-}
-
   async function signUpWithEmail() {
     try {
       setLoading(true)
@@ -59,9 +43,8 @@ setLoading(false)
           style={styles.input}
           onChangeText={setEmail}
           value={email}
-          placeholder="email@address.com"
+          placeholder="league@gmail.com"
           autoCapitalize="none"
-          keyboardType="email-address"
         />
       </View>
 
@@ -72,8 +55,19 @@ setLoading(false)
           onChangeText={setPassword}
           value={password}
           secureTextEntry
-          placeholder="Password"
+          placeholder="ILoveLeague123"
           autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.verticallySpaced}>
+        <Text style={styles.label}>City</Text>
+        <TextInput
+          style={styles.input}
+          onChangeText={setlocality}
+          value={locality}
+          secureTextEntry
+          placeholder="City"
+          autoCapitalize='sentences'
         />
       </View>
 
@@ -83,9 +77,7 @@ setLoading(false)
         </View>
       )}
 
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button title="Sign in" disabled={loading} onPress={signInWithEmail} />
-      </View>
+
 
       <View style={styles.verticallySpaced}>
         <Button title="Sign up" disabled={loading} onPress={signUpWithEmail} />
@@ -110,6 +102,7 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 4,
     fontWeight: '600',
+    color: '#fff',
   },
   input: {
     borderWidth: 1,

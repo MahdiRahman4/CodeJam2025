@@ -1,19 +1,29 @@
 import { Image } from 'expo-image';
 import { Platform, StyleSheet,Text,View} from 'react-native';
-
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
-
+import StatsTable, { StatsRow } from '../../components/table';
+const data: StatsRow[] = [
+  { name: "Aariyan", champion: 'Zed', role: 'Mid', winRate: '53%' },
+  { name: "Yasin",champion: 'Vi', role: 'Jungle', winRate: '50%' },
+  { name: "Liam",champion: 'Caitlyn', role: 'ADC', winRate: '49%' },
+];
+const datarivals: StatsRow[] = [
+  { name: "Aariyan", champion: 'Zed', role: 'Mid', winRate: '53%' },
+  { name: "Yasin",champion: 'Vi', role: 'Jungle', winRate: '50%' },
+  { name: "Liam",champion: 'Caitlyn', role: 'ADC', winRate: '49%' },
+];
 export default function TabTwoScreen() {
   return (
+    
 <View>
-    <View style={style.bg}>
-        <Text style={style.title}>Montreal Leaderboard</Text>
+    <View>
+    <Text style={style.title}>Leaderboards</Text>
+    </View>
+    <View style={style.leaderboardContainer}>
+    <StatsTable data={data} title="Best ... in Montreal" />
+    </View>
+
+    <View style={style.leaderboardContainer2}>
+    <StatsTable data={datarivals} title="Best ... in FK CLAN" />
     </View>
     
 </View>
@@ -33,10 +43,20 @@ height: 100,
         fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginTop: 40,
+        marginTop: 100,
+        color: "#fff",
     }
-    leaderboardContainer:{
-        marginTop: 120,
-        padding: 16,
+    ,leaderboardContainer:{
+        flex: 1,
+        position: 'absolute',
+        top: 150,
+        left: 0,
+    }
+    ,leaderboardContainer2:{
+        flex: 1,
+        position: 'absolute',
+        top: 400,
+        left: 0,
     }
 })
+
