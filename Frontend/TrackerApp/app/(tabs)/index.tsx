@@ -1,43 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Animated, ImageBackground, StyleSheet, TouchableOpacity, View, Text, Pressable } from "react-native";
 import FloatingButton from "@/components/rival-button";
+import { PixelifySans_400Regular, PixelifySans_500Medium, PixelifySans_700Bold } from "@expo-google-fonts/pixelify-sans";
 
 export default function CharacterScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const shake = () => {
-      Animated.sequence([
-        Animated.timing(shakeAnim, {
-          toValue: 1,
-          duration: 5,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: -1,
-          duration: 5,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 1,
-          duration: 5,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: -1,
-          duration: 5,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 0,
-          duration: 5,
-          useNativeDriver: true,
-        }),
-      ]).start(() => shake());
-    };
-    shake();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
 
   const animatedStyle = {
     transform: [{ translateX: shakeAnim }],
@@ -46,15 +15,13 @@ export default function CharacterScreen() {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require("../../assets/images/test.png")}
+        source={require('../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMA.png')}
         style={styles.imageBackground}
+        resizeMode="contain"   
       >
+        <Text style={{fontFamily:"PixelifySans_500Medium" ,fontSize:50, position:"absolute", top:125, left:150, color:"#471B2B"}}>Plants</Text>
       </ImageBackground>
-      <FloatingButton />
       <Animated.View style={[styles.buttonContainer, animatedStyle]}>
-        <TouchableOpacity style={styles.shakeButton}>
-          <Text style={styles.buttonText}>CHEST</Text>
-        </TouchableOpacity>
       </Animated.View>
     </View>
   );
@@ -63,11 +30,14 @@ export default function CharacterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor:"#893F30",
   },
   imageBackground: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
+    flex: 1,                 // take all available space
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center', // optional: position inner content
+    alignItems: 'center',
   },
   titleContainer: {
     flexDirection: "row",

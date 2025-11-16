@@ -1,11 +1,18 @@
-// app/(tabs)/TabTwoScreen.tsx (or wherever this file lives)
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, ActivityIndicator, Alert } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import StatsTable, { StatsRow } from '../../components/table';
 import { supabase } from '@/lib/supabase';
 
 const TabTwoScreen = () => {
   const [rows, setRows] = useState<StatsRow[]>([]);
+  const [region, setRegion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,12 +20,77 @@ const TabTwoScreen = () => {
       try {
         setLoading(true);
 
-        const { data, error } = await supabase
-          .from('summaries') 
+        // 1) Get current auth user
+        const {
+          data: authData,
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !authData?.user) {
+          console.log(userError);
+          Alert.alert('Error', 'Not logged in');
+          return;
+        }
+
+        const userId = authData.user.id;
+
+        // 2) Get this user's Riot ID from profiles
+        const {
+          data: profile,
+          error: profileError,
+        } = await supabase
+          .from('profiles')
+          .select('riotID')
+          .eq('id', userId)
+          .single();
+
+        if (profileError || !profile) {
+          console.log(profileError);
+          Alert.alert('Error', 'Could not load your profile');
+          return;
+        }
+
+        const riotID = profile.riotID as string | null;
+        if (!riotID) {
+          Alert.alert(
+            'No Riot ID',
+            'Please link your Riot account before viewing the leaderboard.'
+          );
+          return;
+        }
+
+        // 3) Find this player's region from summaries
+        const {
+          data: mySummary,
+          error: summaryError,
+        } = await supabase
+          .from('summaries')
+          .select('region')
+          .eq('game_name', riotID)
+          .maybeSingle();
+
+        if (summaryError) {
+          console.log(summaryError);
+          Alert.alert('Error', 'Could not determine your region');
+          return;
+        }
+
+        const regionValue = mySummary?.region ?? null;
+        setRegion(regionValue);
+
+        // 4) Load leaderboard rows filtered by that region
+        let query = supabase
+          .from('summaries')
           .select(
-            'game_name, avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda'
+            'game_name, avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda, region'
           )
-          .order('avg_kda', { ascending: false }); 
+          .order('avg_kda', { ascending: false });
+
+        if (regionValue) {
+          query = query.eq('region', regionValue);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
           console.log(error);
@@ -45,6 +117,10 @@ const TabTwoScreen = () => {
     fetchSummaries();
   }, []);
 
+  const title = region
+    ? `Best Players in ${region}`
+    : 'Best Players';
+
   return (
     <View style={style.container}>
       <Text style={style.title}>Leaderboards</Text>
@@ -54,7 +130,7 @@ const TabTwoScreen = () => {
           {loading ? (
             <ActivityIndicator />
           ) : (
-            <StatsTable data={rows} title="Best ... in Montreal" />
+            <StatsTable data={rows} title={title} />
           )}
         </View>
       </View>
@@ -94,11 +170,11 @@ const style = StyleSheet.create({
     width: '100%',
   },
   leaderboardContainer: {
-    flex: 0.9,      // 👈 use most of the remaining height
+    flex: 0.9,
     width: '100%',
   },
   tableWrapper: {
-    flex: 1,        // 👈 let the table fill this container
+    flex: 1,
     width: '100%',
     paddingHorizontal: 12,
   },
