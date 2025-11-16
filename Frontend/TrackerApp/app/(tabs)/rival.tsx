@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, Image } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import FloatingButton from "@/components/rival-button";
 
@@ -12,10 +12,7 @@ interface ProfileRow {
 
 const FindRivalScreen: React.FC = () => {
   const [currentProfile, setCurrentProfile] = useState<ProfileRow | null>(null);
-  const [rivalRiotId, setRivalRiotId] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  // 1) Load current user's profile
   useEffect(() => {
     const loadProfile = async () => {
       const { data: authData, error: userError } = await supabase.auth.getUser();
@@ -42,61 +39,6 @@ const FindRivalScreen: React.FC = () => {
     loadProfile();
   }, []);
 
-  // 2) Handler to set rival
-  const handleSetRival = async () => {
-    if (!currentProfile) return;
-    if (!rivalRiotId.trim()) {
-      Alert.alert('Error', 'Please enter a Riot ID');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // find rival profile by riotID
-      const { data: rival, error: rivalError } = await supabase
-        .from('profiles')
-        .select('id, riotID')
-        .eq('riotID', rivalRiotId.trim())
-        .single();
-
-      if (rivalError || !rival) {
-        Alert.alert('Not found', 'No player with that Riot ID');
-        return;
-      }
-
-      // prevent setting yourself as rival
-      if (rival.id === currentProfile.id) {
-        Alert.alert('Nice try 😅', 'You cannot set yourself as your rival');
-        return;
-      }
-
-      // update current user's profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          has_rival: true,
-          rival_profile_id: rival.id,
-        })
-        .eq('id', currentProfile.id);
-
-      if (updateError) {
-        console.log(updateError);
-        Alert.alert('Error', 'Could not set rival');
-        return;
-      }
-
-      Alert.alert('Rival set!', `You are now rivals with ${rival.riotID}`);
-      setCurrentProfile({
-        ...currentProfile,
-        has_rival: true,
-        rival_profile_id: rival.id,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!currentProfile) {
     return (
       <View style={styles.container}>
@@ -105,80 +47,41 @@ const FindRivalScreen: React.FC = () => {
     );
   }
 
-  // Already has rival → later you can show stats comparison here
-  if (currentProfile.has_rival) {
-    return (
-          <View style={styles.container2}>
-      <Text style={styles.title2}></Text>
-      <View style={styles.statDisparityBox}>
-        <Text style={styles.statDisparityTitle}>STAT DISPARITY</Text>
-        
-      </View>
+  // Show rival screen with layered assets
+  return (
+    <View style={styles.container2}>
+      {/* Background layer - first */}
+      <Image
+        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      {/* Stats layer - second */}
+      <Image
+        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMAStats.png')}
+        style={styles.statsImage}
+        resizeMode="contain"
+      />
+      {/* Rival Bar layer - third (on top of Stats) */}
+      <Image
+        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMARival Bar.png')}
+        style={styles.rivalBarImage}
+        resizeMode="contain"
+      />
+      {/* Title Bar layer - last */}
+      <Image
+        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMATitle Bar.png')}
+        style={styles.titleBarImage}
+        resizeMode="contain"
+      />
+      {/* Text overlay on title bar */}
+      <Text style={styles.titleText}>Plants#333</Text>
       <FloatingButton useBack={true} />
     </View>
   );
 }
 
-const styles2 = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  statDisparityBox: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "50%",
-    backgroundColor: "#f5f5f5",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  statDisparityTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-});
 
-
-  
-
-  // No rival yet → show input
-  return (
-
-    <View style={styles.container}>
-      <Text style={styles.text}>You don’t have a rival yet.</Text>
-      <Text style={styles.textSmall}>Ask your friend for their Riot ID</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="friendName#TAG"
-        value={rivalRiotId}
-        onChangeText={setRivalRiotId}
-        autoCapitalize="none"
-      />
-
-      <Button title={loading ? 'Saving...' : 'Set Rival'} onPress={handleSetRival} disabled={loading} />
-    </View>
-  );
-
-}
 export default FindRivalScreen;
 
 const styles = StyleSheet.create({
@@ -211,35 +114,51 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    position: "relative",
   },
   title2: {
     fontSize: 24,
     fontWeight: "bold",
   },
-  statDisparityBox: {
+  backgroundImage: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    height: "50%",
-    backgroundColor: "#f5f5f5",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1,
   },
-  statDisparityTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+  rivalBarImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    zIndex: 3,
+  },
+  statsImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    zIndex: 2,
+  },
+  titleBarImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    zIndex: 4,
+  },
+  titleText: {
+    position: "absolute",
+    fontFamily: "PixelifySans_500Medium",
+    fontSize: 50,
+    color: "#471B2B",
+    top: "8%",
+    marginTop: 30,
+    left: 0,
+    right: 0,
+    zIndex: 5,
     textAlign: "center",
-    marginBottom: 15,
   },
 });
 
