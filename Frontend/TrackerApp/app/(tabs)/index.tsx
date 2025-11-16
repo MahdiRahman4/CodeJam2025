@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Animated, ImageBackground, StyleSheet, TouchableOpacity, View, Text } from "react-native";
+import { Animated, ImageBackground, StyleSheet, TouchableOpacity, View, Text, Pressable } from "react-native";
 import FloatingButton from "@/components/rival-button";
 
 export default function CharacterScreen() {
