@@ -187,6 +187,8 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
     fontFamily: 'Jersey10_400Regular',
+    textAlign: 'center',
+    width: '100%',    
   },
   row: {
     flexDirection: 'row',
