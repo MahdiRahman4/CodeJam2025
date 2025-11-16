@@ -55,17 +55,7 @@ export default function TabLayout() {
         tabBarButton: NavBarEffects,
         tabBarBackground: () => <TabBarGradient />,
         tabBarStyle: {
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
-          borderRadius: 20,
-          marginHorizontal: 16,
-          marginBottom: 20,
-          height: 70,
-          position: 'absolute',
-          paddingTop: 15,
-          paddingBottom: 15,
-          overflow: 'hidden',
+          display: 'none', // Hide the tab bar completely
         },
         tabBarInactiveTintColor: '#9BA1A6',
         tabBarShowLabel: false,
