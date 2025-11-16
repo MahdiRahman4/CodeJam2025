@@ -5,7 +5,8 @@ import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { Session } from "@supabase/supabase-js";
 
-import { HapticTab } from "@/components/haptic-tab";
+import { NavBarEffects } from "@/components/nav-bar-effects";
+import { TabBarGradient } from "@/components/tab-bar-gradient";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -51,7 +52,23 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarButton: NavBarEffects,
+        tabBarBackground: () => <TabBarGradient />,
+        tabBarStyle: {
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderRadius: 20,
+          marginHorizontal: 16,
+          marginBottom: 20,
+          height: 70,
+          position: 'absolute',
+          paddingTop: 15,
+          paddingBottom: 15,
+          overflow: 'hidden',
+        },
+        tabBarInactiveTintColor: '#9BA1A6',
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
@@ -69,15 +86,6 @@ export default function TabLayout() {
           title: "Home",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="clan"
-        options={{
-          title: "Clan",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={50} name="person.3.fill" color={color} />
           ),
         }}
       />
