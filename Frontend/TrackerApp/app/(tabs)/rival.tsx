@@ -20,7 +20,7 @@ interface ProfileRow {
   id: string;
   riotID: string | null;
   has_rival: boolean;
-  // stores player_summaries.puuid as text
+  // stores player_summaries.game_name as text
   rival_profile_id: string | null;
 }
 
@@ -34,7 +34,6 @@ interface PlayerStats {
 }
 
 interface RivalOption {
-  puuid: string;      // from player_summaries.puuid
   game_name: string;  // from player_summaries.game_name
   tag_line: string;   // from player_summaries.tag_line
 }
@@ -96,12 +95,12 @@ const FindRivalScreen: React.FC = () => {
       const profile = data as ProfileRow;
       setCurrentProfile(profile);
 
-      // If a rival is already set, fetch their name from player_summaries via puuid
+      // If a rival is already set, fetch their name from player_summaries via game_name
       if (profile.rival_profile_id) {
         const { data: rival, error: rivalErr } = await supabase
           .from('player_summaries')
           .select('game_name, tag_line')
-          .eq('puuid', profile.rival_profile_id)
+          .eq('game_name', profile.rival_profile_id)
           .maybeSingle();
 
         if (!rivalErr && rival?.game_name) {
@@ -145,44 +144,61 @@ const FindRivalScreen: React.FC = () => {
           return;
         }
 
-        // --- RIGHT SIDE: RIVAL (dynamic via rival_profile_id / puuid) ---
+        // --- RIGHT SIDE: RIVAL (dynamic via rival_profile_id / game_name) ---
         const { data: data2, error: error2 } = await supabase
           .from('player_summaries')
           .select(
             'avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda, game_name, tag_line'
           )
-          .eq('puuid', currentProfile.rival_profile_id)
+          .eq('game_name', currentProfile.rival_profile_id)
           .maybeSingle();
 
-        if (error2 || !data2) {
-          console.log('Error fetching rival stats or not found:', error2);
+        if (error2) {
+          console.log('Error fetching rival stats:', error2);
+          Alert.alert('Error', `Could not fetch rival stats: ${error2.message}`);
           return;
         }
 
-        setPlayerData1(data1);
-        setPlayerData2(data2);
-
-        // Also keep rival name in sync if it somehow wasn't set yet
-        if (data2.game_name && rivalName === 'Rival') {
-          setRivalName(data2.game_name);
+        if (!data2) {
+          console.log('Rival not found:', currentProfile.rival_profile_id);
+          // Clear the rival if they don't exist at all
+          setPlayerData2(null);
+          setProgressValues([0.5, 0.5, 0.5, 0.5, 0.5]);
+          return;
         }
 
+        // Handle missing stats gracefully with defaults (0)
+        const rivalData = {
+          ...data2,
+          avg_damage: data2.avg_damage ?? 0,
+          avg_kda: data2.avg_kda ?? 0,
+          avg_cs: data2.avg_cs ?? 0,
+          avg_gold: data2.avg_gold ?? 0,
+          avg_vision_score: data2.avg_vision_score ?? 0,
+          avg_impact_score: data2.avg_impact_score ?? 0,
+        };
+
+        setPlayerData1(data1);
+        setPlayerData2(rivalData);
+
+        // Also keep rival name in sync if it somehow wasn't set yet
+        if (rivalData.game_name && rivalName === 'Rival') {
+          setRivalName(rivalData.game_name);
+        }
+
+        // Calculate ratios, defaulting to 0.5 if both players have 0 for a stat
+        const calculateRatio = (val1: number, val2: number) => {
+          const sum = val1 + val2;
+          return sum > 0 ? val1 / sum : 0.5;
+        };
+
         const avgStats: PlayerStats = {
-          avg_damage_ratio:
-            data1.avg_damage /
-            ((data1.avg_damage || 0) + (data2.avg_damage || 0)),
-          avg_vision_score_ratio:
-            data1.avg_vision_score /
-            ((data1.avg_vision_score || 0) + (data2.avg_vision_score || 0)),
-          avg_impact_score_ratio:
-            data1.avg_impact_score /
-            ((data1.avg_impact_score || 0) + (data2.avg_impact_score || 0)),
-          avg_cs_ratio:
-            data1.avg_cs / ((data1.avg_cs || 0) + (data2.avg_cs || 0)),
-          avg_gold_ratio:
-            data1.avg_gold / ((data1.avg_gold || 0) + (data2.avg_gold || 0)),
-          avg_kda_ratio:
-            data1.avg_kda / ((data1.avg_kda || 0) + (data2.avg_kda || 0)),
+          avg_damage_ratio: calculateRatio(data1.avg_damage || 0, rivalData.avg_damage),
+          avg_vision_score_ratio: calculateRatio(data1.avg_vision_score || 0, rivalData.avg_vision_score),
+          avg_impact_score_ratio: calculateRatio(data1.avg_impact_score || 0, rivalData.avg_impact_score),
+          avg_cs_ratio: calculateRatio(data1.avg_cs || 0, rivalData.avg_cs),
+          avg_gold_ratio: calculateRatio(data1.avg_gold || 0, rivalData.avg_gold),
+          avg_kda_ratio: calculateRatio(data1.avg_kda || 0, rivalData.avg_kda),
         };
 
         const ratios = [
@@ -200,7 +216,7 @@ const FindRivalScreen: React.FC = () => {
     };
 
     fetchAverageStats();
-  }, [currentProfile?.rival_profile_id, rivalName]);
+  }, [currentProfile, rivalName]);
 
   // Load rivals from player_summaries when opening modal
   const openRivalSelector = async () => {
@@ -210,7 +226,7 @@ const FindRivalScreen: React.FC = () => {
 
       const { data, error } = await supabase
         .from('player_summaries')
-        .select('puuid, game_name, tag_line');
+        .select('game_name, tag_line');
 
       if (error) {
         console.log('Error loading rival options from player_summaries:', error);
@@ -218,7 +234,10 @@ const FindRivalScreen: React.FC = () => {
         return;
       }
 
-      setRivalOptions((data ?? []) as RivalOption[]);
+      // Only filter out players without a game_name
+      const validPlayers = (data ?? []).filter(player => player.game_name);
+
+      setRivalOptions(validPlayers as RivalOption[]);
     } finally {
       setLoadingRivals(false);
     }
@@ -232,8 +251,8 @@ const FindRivalScreen: React.FC = () => {
         .from('profiles')
         .update({
           has_rival: true,
-          // store player_summaries.puuid in profiles.rival_profile_id
-          rival_profile_id: rival.puuid,
+          // store player_summaries.game_name in profiles.rival_profile_id
+          rival_profile_id: rival.game_name,
         })
         .eq('id', currentProfile.id);
 
@@ -247,7 +266,7 @@ const FindRivalScreen: React.FC = () => {
       setCurrentProfile({
         ...currentProfile,
         has_rival: true,
-        rival_profile_id: rival.puuid,
+        rival_profile_id: rival.game_name,
       });
       setRivalSelectorOpen(false);
   
@@ -377,17 +396,57 @@ const FindRivalScreen: React.FC = () => {
           {
             color:
               playerData1 && playerData2
-                ? playerData1.avg_impact_score > playerData2.avg_impact_score
-                  ? '#a23e8c'
-                  : '#4f8fba'
+                ? (() => {
+                    // Calculate weighted score for player1
+                    let player1Score = 0;
+                    
+                    // KDA (weight: 1)
+                    if ((playerData1.avg_kda || 0) > (playerData2.avg_kda || 0)) player1Score += 1;
+                    
+                    // Damage (weight: 1)
+                    if ((playerData1.avg_damage || 0) > (playerData2.avg_damage || 0)) player1Score += 1;
+                    
+                    // CS (weight: 1)
+                    if ((playerData1.avg_cs || 0) > (playerData2.avg_cs || 0)) player1Score += 1;
+                    
+                    // Gold (weight: 0.5)
+                    if ((playerData1.avg_gold || 0) > (playerData2.avg_gold || 0)) player1Score += 0.5;
+                    
+                    // Vision (weight: 1)
+                    if ((playerData1.avg_vision_score || 0) > (playerData2.avg_vision_score || 0)) player1Score += 1;
+                    
+                    // Total possible score: 4.5 (1+1+1+0.5+1)
+                    // Player1 wins if they have more than half
+                    return player1Score > 2.25 ? '#a23e8c' : '#4f8fba';
+                  })()
                 : '#471B2B',
           },
         ]}
       >
         {playerData1 && playerData2
-          ? playerData1.avg_impact_score > playerData2.avg_impact_score
-            ? '>'
-            : '<'
+          ? (() => {
+              // Calculate weighted score for player1
+              let player1Score = 0;
+              
+              // KDA (weight: 1)
+              if ((playerData1.avg_kda || 0) > (playerData2.avg_kda || 0)) player1Score += 1;
+              
+              // Damage (weight: 1)
+              if ((playerData1.avg_damage || 0) > (playerData2.avg_damage || 0)) player1Score += 1;
+              
+              // CS (weight: 1)
+              if ((playerData1.avg_cs || 0) > (playerData2.avg_cs || 0)) player1Score += 1;
+              
+              // Gold (weight: 0.5)
+              if ((playerData1.avg_gold || 0) > (playerData2.avg_gold || 0)) player1Score += 0.5;
+              
+              // Vision (weight: 1)
+              if ((playerData1.avg_vision_score || 0) > (playerData2.avg_vision_score || 0)) player1Score += 1;
+              
+              // Total possible score: 4.5 (1+1+1+0.5+1)
+              // Player1 wins if they have more than half
+              return player1Score > 2.25 ? '>' : '<';
+            })()
           : '-'}
       </Text>
 
@@ -433,18 +492,22 @@ const FindRivalScreen: React.FC = () => {
               <Text style={styles.modalText}>Loading players...</Text>
             ) : (
               <ScrollView style={styles.modalList}>
-                {filteredRivals.map((opt) => (
-                  <Pressable
-                    key={opt.puuid}
-                    style={styles.modalItem}
-                    onPress={() => handleSelectRival(opt)}
-                  >
-                    <Text style={styles.modalItemText}>{opt.game_name}</Text>
-                    {opt.tag_line && (
-                      <Text style={styles.modalItemSub}>#{opt.tag_line}</Text>
-                    )}
-                  </Pressable>
-                ))}
+                {filteredRivals.length === 0 ? (
+                  <Text style={styles.modalText}>No rivals found.</Text>
+                ) : (
+                  filteredRivals.map((opt) => (
+                    <Pressable
+                      key={`${opt.game_name}-${opt.tag_line}`}
+                      style={styles.modalItem}
+                      onPress={() => handleSelectRival(opt)}
+                    >
+                      <Text style={styles.modalItemText}>{opt.game_name}</Text>
+                      {opt.tag_line && (
+                        <Text style={styles.modalItemSub}>#{opt.tag_line}</Text>
+                      )}
+                    </Pressable>
+                  ))
+                )}
               </ScrollView>
             )}
             <Pressable
