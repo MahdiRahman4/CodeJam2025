@@ -77,58 +77,58 @@ export default function CharacterScreen() {
   const chestOpening = require("../../asset_AARI/Exported/Chest/CATS_GreyChest__opening_AARIALMA.gif");
   const chestThumb = require("../../asset_AARI/Exported/Chest/CATS_GreyChest_Thumbnail_AARIALMA.png");
 
-  const catGif = require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif");
+  const catGif = require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Baseball_AARIALMA.gif");
 
   const itemPool = [
     {
       id: "baseball",
       name: "Baseball Hat",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Baseball_AARIALMA.gif"),
     },
     {
       id: "beret",
       name: "Beret",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Beret_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Beret_AARIALMA.gif"),
     },
     {
       id: "strawhat",
       name: "Straw Hat",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Strawhat_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Strawhat_AARIALMA.gif"),
     },
     {
       id: "astronaut",
       name: "Astronaut",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Astronaut_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Astronaut_AARIALMA.gif"),
     },
     {
       id: "bowler",
       name: "Bowler Hat",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Bowler_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Bowler_AARIALMA.gif"),
     },
     {
       id: "chef",
       name: "Chef Hat",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Chef_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Chef_AARIALMA.gif"),
     },
     {
       id: "fez",
       name: "Fez",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Fez_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Fez_AARIALMA.gif"),
     },
     {
       id: "sailor",
       name: "Sailor Hat",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Sailor_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Sailor_AARIALMA.gif"),
     },
     {
       id: "sheriff",
       name: "Sheriff Hat",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Sheriff_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Sheriff_AARIALMA.gif"),
     },
     {
       id: "turban",
       name: "Turban",
-      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Turban_AARIALMA.gif"),
+      src: require("../../asset_AARI/Exported/Hats/cat_gifs/CATS_PinkCat_Turban_AARIALMA.gif"),
     },
   ];
 
@@ -407,26 +407,11 @@ export default function CharacterScreen() {
       onPanResponderRelease: (_, gesture) => {
         const { dx } = gesture;
 
+        // Instant navigation only — no local animation.
         if (dx < -50) {
-          // sequence: fall down, then clone moves right
-          Animated.sequence([
-            Animated.timing(transition, {
-              toValue: 1,
-              duration: 1000, // fall duration
-              useNativeDriver: true,
-            }),
-            Animated.timing(cloneAnim, {
-              toValue: 1,
-              duration: 600, // horizontal move duration
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            transition.setValue(0);
-            cloneAnim.setValue(0);
-            router.push("/(tabs)/rival");
-          });
+          router.push("/rival");
         } else if (dx > 50) {
-          router.push("/(tabs)/leaderboard");
+          router.push("/leaderboard");
         }
       },
     })

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -7,11 +7,38 @@ import {
   ActivityIndicator,
   Alert,
   ImageBackground,
+  PanResponder,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import StatsTable, { StatsRow } from '../../components/table';
 import { supabase } from '@/lib/supabase';
 
 const TabTwoScreen = () => {
+  const router = useRouter();
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => {
+        const { dx, dy } = gesture;
+        return Math.abs(dx) > 10 && Math.abs(dy) < 10;
+      },
+      // capture the gesture before child scroll views (table) so horizontal
+      // swipes are recognized even when the table/FlatList is handling touches.
+      onMoveShouldSetPanResponderCapture: (_, gesture) => {
+        const { dx, dy } = gesture;
+        return Math.abs(dx) > 10 && Math.abs(dy) < 10;
+      },
+      onStartShouldSetPanResponderCapture: () => false,
+      onPanResponderRelease: (_, gesture) => {
+        const { dx } = gesture;
+        if (dx < -50) {
+          router.push("/");  
+        } else if (dx > 50) {
+          router.push("/rival");
+        }
+
+      },
+    })
+  ).current;
   const [rows, setRows] = useState<StatsRow[]>([]);
   const [region, setRegion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +138,7 @@ const TabTwoScreen = () => {
       source={require('../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMAMain Color.png')}
       style={style.background}         // full-screen background
       resizeMode="cover"
+      {...panResponder.panHandlers}
     >
       {/* overlay content on top of background */}
       <View style={style.container}>

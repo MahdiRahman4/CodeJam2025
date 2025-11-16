@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Alert, Image, PanResponder } from 'react-native';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import FloatingButton from "@/components/rival-button";
 import * as Progress from 'react-native-progress';
@@ -21,6 +22,25 @@ interface PlayerStats {
 }
 
 const FindRivalScreen: React.FC = () => {
+  const router = useRouter();
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => {
+        const { dx, dy } = gesture;
+        return Math.abs(dx) > 10 && Math.abs(dy) < 10;
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const { dx } = gesture;
+        if (dx < -50) {
+          // circle to leaderboard
+          router.push("/leaderboard");
+        } else if (dx > 50) {
+          // back to index
+          router.push("/");
+        }
+      },
+    })
+  ).current;
   const [currentProfile, setCurrentProfile] = useState<ProfileRow | null>(null);
   const [progressValues, setProgressValues] = useState<number[]>([0.3, 0.3, 0.3, 0.3, 0.3]);
 
@@ -145,7 +165,7 @@ const FindRivalScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container2}>
+    <View style={styles.container2} {...panResponder.panHandlers}>
       <Image
         source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
         style={styles.backgroundImage}
