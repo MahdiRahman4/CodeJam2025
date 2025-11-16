@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Alert, Image } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import FloatingButton from "@/components/rival-button";
+import * as Progress from 'react-native-progress';
 
 interface ProfileRow {
   id: string;
@@ -47,34 +48,33 @@ const FindRivalScreen: React.FC = () => {
     );
   }
 
-  // Show rival screen with layered assets
   return (
     <View style={styles.container2}>
-      {/* Background layer - first */}
       <Image
         source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       />
-      {/* Stats layer - second */}
       <Image
         source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMAStats.png')}
         style={styles.statsImage}
         resizeMode="contain"
       />
-      {/* Rival Bar layer - third (on top of Stats) */}
       <Image
         source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMARival Bar.png')}
         style={styles.rivalBarImage}
         resizeMode="contain"
       />
-      {/* Title Bar layer - last */}
       <Image
         source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMATitle Bar.png')}
         style={styles.titleBarImage}
         resizeMode="contain"
       />
-      {/* Text overlay on title bar */}
+      <Progress.Bar progress={0.3} width={200} />
+      <Progress.Bar progress={0.3} width={200} />
+      <Progress.Bar progress={0.3} width={200} />
+      <Progress.Bar progress={0.3} width={200} />
+      <Progress.Bar progress={0.3} width={200} />
       <Text style={styles.titleText}>Plants#333</Text>
       <FloatingButton useBack={true} />
     </View>
