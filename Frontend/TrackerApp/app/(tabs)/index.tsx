@@ -135,6 +135,16 @@ export default function CharacterScreen() {
   // handle chest opening lifecycle
   const openChest = (side: "left" | "right") => {
     const now = Date.now();
+    // Get list of already-collected item IDs
+    const collectedIds = new Set(inventory.map((i) => i.id));
+    // Filter out already-collected items
+    const availableItems = itemPool.filter((item) => !collectedIds.has(item.id));
+
+    if (availableItems.length === 0) {
+      console.log("All items already collected!");
+      return; // Don't open if no items left
+    }
+
     if (side === "left") {
       if (leftNextAvailable && now < leftNextAvailable) return; // still cooling down
       setLeftChest("opening");
@@ -142,7 +152,7 @@ export default function CharacterScreen() {
       setLeftNextAvailable(next);
       AsyncStorage.setItem(LEFT_KEY, String(next)).catch(() => {});
       setTimeout(() => {
-        const item = itemPool[Math.floor(Math.random() * itemPool.length)];
+        const item = availableItems[Math.floor(Math.random() * availableItems.length)];
         setPopupItem(item);
         setInventory((prev) => [...prev, item]);
         setLeftChest("opened");
@@ -157,7 +167,7 @@ export default function CharacterScreen() {
       setRightNextAvailable(next);
       AsyncStorage.setItem(RIGHT_KEY, String(next)).catch(() => {});
       setTimeout(() => {
-        const item = itemPool[Math.floor(Math.random() * itemPool.length)];
+        const item = availableItems[Math.floor(Math.random() * availableItems.length)];
         setPopupItem(item);
         setInventory((prev) => [...prev, item]);
         setRightChest("opened");
