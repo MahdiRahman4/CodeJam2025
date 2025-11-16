@@ -51,22 +51,22 @@ const FindRivalScreen: React.FC = () => {
   return (
     <View style={styles.container2}>
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMABackground.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       />
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMAStats.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMAStats.png')}
         style={styles.statsImage}
         resizeMode="contain"
       />
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMARival Bar.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMARival Bar.png')}
         style={styles.rivalBarImage}
         resizeMode="contain"
       />
       <Image
-        source={require('../../asset_AARI/Aseprite/Exported/Rivals/CATS_RivalsBG_AARIALMATitle Bar.png')}
+        source={require('../../asset_AARI/Exported/Rivals/CATS_RivalsBG_AARIALMATitle Bar.png')}
         style={styles.titleBarImage}
         resizeMode="contain"
       />
