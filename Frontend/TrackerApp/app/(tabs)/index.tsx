@@ -480,17 +480,15 @@ const resetTimers = async () => {
         style={styles.imageBackground}
         resizeMode="contain"
       >
+        
+          <ImageBackground
+        source={require("../../asset_AARI/Exported/Backgrounds/CATS_Background_SunnyDay_AARIALMA.gif")}
+        style={styles.imageBackground}
+        resizeMode="contain"
+      ></ImageBackground>
+      
+
 {/* swipe edge hints */}
-<Animated.View
-  pointerEvents="none"
->
-  <LinearGradient
-    colors={["transparent", "rgba(255,255,255,0.4)", "transparent"]}
-    start={{ x: 1, y: 0.5 }}
-    end={{ x: 0, y: 0.5 }}
-    style={StyleSheet.absoluteFill}
-  />
-</Animated.View>
 
 <Animated.View
   pointerEvents="none"
@@ -513,6 +511,7 @@ const resetTimers = async () => {
       top: 135,
       left: 150,
       color: "#471B2B",
+      zIndex: 10,
     },
     titleAnimatedStyle,
   ]}
