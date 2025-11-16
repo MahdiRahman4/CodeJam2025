@@ -9,6 +9,7 @@ import {
   Alert,
   ImageBackground,
   PanResponder,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import StatsTable, { StatsRow } from '../../components/table';
@@ -106,7 +107,7 @@ const TabTwoScreen = () => {
         const mapped: StatsRow[] =
           lb?.map((row: any) => ({
             name: row.game_name,
-            avg_impact_score: (row.avg_impact_score*10) ?? 0,
+            avg_impact_score: (row.avg_impact_score ?? 0) * 10,
             avg_kda: row.avg_kda ?? 0,
             avg_damage: row.avg_damage ?? 0,
             avg_cs: row.avg_cs ?? 0,
@@ -147,6 +148,11 @@ const TabTwoScreen = () => {
             )}
           </View>
         </View>
+
+        {/* Logout Button */}
+        <Pressable onPress={() => supabase.auth.signOut()} style={styles.logoutButton}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </Pressable>
       </View>
     </ImageBackground>
   );
@@ -175,5 +181,20 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     paddingHorizontal: 12,
+  },
+  logoutButton: {
+    position: 'absolute',
+    bottom: 40,
+    backgroundColor: '#471B2B',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#893F30',
+  },
+  logoutText: {
+    fontSize: 18,
+    color: 'white',
+    fontWeight: '600',
   },
 });
