@@ -6,11 +6,7 @@ const data: StatsRow[] = [
   { name: "Yasin",champion: 'Vi', role: 'Jungle', winRate: '50%' },
   { name: "Liam",champion: 'Caitlyn', role: 'ADC', winRate: '49%' },
 ];
-const datarivals: StatsRow[] = [
-  { name: "Aariyan", champion: 'Zed', role: 'Mid', winRate: '53%' },
-  { name: "Yasin",champion: 'Vi', role: 'Jungle', winRate: '50%' },
-  { name: "Liam",champion: 'Caitlyn', role: 'ADC', winRate: '49%' },
-];
+
 export default function TabTwoScreen() {
   return (
     
@@ -21,11 +17,6 @@ export default function TabTwoScreen() {
     <View style={style.leaderboardContainer}>
     <StatsTable data={data} title="Best ... in Montreal" />
     </View>
-
-    <View style={style.leaderboardContainer2}>
-    <StatsTable data={datarivals} title="Best ... in FK CLAN" />
-    </View>
-    
 </View>
   );
 }

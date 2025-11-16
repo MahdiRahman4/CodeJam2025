@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Button, Pressable } from 'react-native';
 
 export interface StatsRow {
   name: string;
@@ -19,17 +19,51 @@ const defaultData: StatsRow[] = [
   { name: "Liam", champion: 'Jinx', role: 'ADC', winRate: '51%' },
   { name: "Mahdi",champion: 'Thresh', role: 'Support', winRate: '50%' },
 ];
+const rivalsData: StatsRow[] = [
+  { name: "Rival 1", champion: 'Yasuo', role: 'Mid', winRate: '48%' },
+  { name: "Rival 2", champion: 'Riven', role: 'Top', winRate: '51%' },
+  { name: "Rival 3", champion: 'Kha\'Zix', role: 'Jungle', winRate: '53%' },
+];
+
 
 const StatsTable: React.FC<StatsTableProps> = ({
-  data = defaultData,
-  title = 'Champion Stats',
+  data,
+  title = 'Montreal Leaderboard',
 }) => {
+  // true = showing rivals, false = Montreal
+  const [showRivals, setShowRivals] = useState(false);
+
+  // Decide which data & title to show
+  const montrealData = data ?? defaultData;
+  const rowsToShow = showRivals ? rivalsData : montrealData;
+  const currentTitle = showRivals ? 'Rivals Leaderboard' : title;
+
+  const handleToggleBoard = () => {
+    setShowRivals((prev) => !prev);
+  };
+
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title}>{currentTitle}</Text>
+
+      <View>
+        <Pressable
+          onPress={handleToggleBoard}
+          style={{
+            backgroundColor: '#3B82F6',
+            padding: 10,
+            borderRadius: 8,
+            marginBottom: 10,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: 'white' }}>
+            {showRivals ? 'See Montreal Leaderboard' : 'See Rivals'}
+          </Text>
+        </Pressable>
+      </View>
 
       {/* HEADER */}
-        
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.cell, styles.headerCell, styles.nameCol]}>
           Name
@@ -47,7 +81,7 @@ const StatsTable: React.FC<StatsTableProps> = ({
 
       {/* BODY */}
       <ScrollView style={styles.body}>
-        {data.map((item, index) => (
+        {rowsToShow.map((item, index) => (
           <View
             key={`${item.name}-${index}`}
             style={[
@@ -74,9 +108,11 @@ const StatsTable: React.FC<StatsTableProps> = ({
   );
 };
 
+
 export default StatsTable;
 
 const styles = StyleSheet.create({
+
   card: {
     backgroundColor: '#111827',
     borderRadius: 12,
