@@ -1,14 +1,26 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, Image, PanResponder } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  Image,
+  PanResponder,
+  Modal,
+  Pressable,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import FloatingButton from "@/components/rival-button";
+import FloatingButton from '@/components/rival-button';
 import * as Progress from 'react-native-progress';
 
 interface ProfileRow {
   id: string;
   riotID: string | null;
   has_rival: boolean;
+  // stores player_summaries.puuid as text
   rival_profile_id: string | null;
 }
 
@@ -21,8 +33,15 @@ interface PlayerStats {
   avg_impact_score_ratio: number;
 }
 
+interface RivalOption {
+  puuid: string;      // from player_summaries.puuid
+  game_name: string;  // from player_summaries.game_name
+  tag_line: string;   // from player_summaries.tag_line
+}
+
 const FindRivalScreen: React.FC = () => {
   const router = useRouter();
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => {
@@ -32,24 +51,32 @@ const FindRivalScreen: React.FC = () => {
       onPanResponderRelease: (_, gesture) => {
         const { dx } = gesture;
         if (dx < -50) {
-          // circle to leaderboard
-          router.push("/leaderboard");
+          router.push('/leaderboard');
         } else if (dx > 50) {
-          // back to index
-          router.push("/");
+          router.push('/');
         }
       },
     })
   ).current;
-  const [currentProfile, setCurrentProfile] = useState<ProfileRow | null>(null);
-  const [progressValues, setProgressValues] = useState<number[]>([0.3, 0.3, 0.3, 0.3, 0.3]);
-  const [playerData1, setPlayerData1] = useState<any>(null);
-  const [playerData2, setPlayerData2] = useState<any>(null);
 
+  const [currentProfile, setCurrentProfile] = useState<ProfileRow | null>(null);
+  const [progressValues, setProgressValues] = useState<number[]>([
+    0.5, 0.5, 0.5, 0.5, 0.5,
+  ]);
+  const [playerData1, setPlayerData1] = useState<any>(null); // T3rroth
+  const [playerData2, setPlayerData2] = useState<any>(null); // rival
+
+  const [rivalName, setRivalName] = useState<string>('Rival');
+  const [rivalSelectorOpen, setRivalSelectorOpen] = useState(false);
+  const [rivalOptions, setRivalOptions] = useState<RivalOption[]>([]);
+  const [loadingRivals, setLoadingRivals] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // 1) Load profile + current rival name (if any)
   useEffect(() => {
     const loadProfile = async () => {
       const { data: authData, error: userError } = await supabase.auth.getUser();
-      if (userError || !authData.user) {
+      if (userError || !authData?.user) {
         Alert.alert('Error', 'Not logged in');
         return;
       }
@@ -66,82 +93,96 @@ const FindRivalScreen: React.FC = () => {
         return;
       }
 
-      setCurrentProfile(data as ProfileRow);
+      const profile = data as ProfileRow;
+      setCurrentProfile(profile);
+
+      // If a rival is already set, fetch their name from player_summaries via puuid
+      if (profile.rival_profile_id) {
+        const { data: rival, error: rivalErr } = await supabase
+          .from('player_summaries')
+          .select('game_name, tag_line')
+          .eq('puuid', profile.rival_profile_id)
+          .maybeSingle();
+
+        if (!rivalErr && rival?.game_name) {
+          setRivalName(rival.game_name);
+        }
+      }
     };
 
+    loadProfile();
+  }, []);
+
+  // 2) Fetch stats for T3rroth (hardcoded) vs current rival whenever rival changes
+  useEffect(() => {
     const fetchAverageStats = async () => {
+      if (!currentProfile) return;
+
       try {
-        // First check if game_names exist in profiles
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('riotID')
-          .not('riotID', 'is', null);
-
-        if (profilesError) {
-          console.log('Error fetching profiles:', profilesError);
-          return;
-        }
-
-        // Extract game names from profiles (part before #) and convert to lowercase
-        const profileGameNames = profiles
-          ?.map(profile => profile.riotID?.split('#')[0]?.toLowerCase())
-          .filter(name => name) || [];
-
-        // Check if T3rroth exists in profiles (case-insensitive)
-        const player1GameName = 'T3rroth';
-        const player1InProfiles = profileGameNames.includes(player1GameName.toLowerCase());
-
-        if (!player1InProfiles) {
-          console.log(`Game name "${player1GameName}" not found in profiles`);
-          return;
-        }
-
-        // Check if Plants exists in profiles (case-insensitive)
-        const player2GameName = 'Plants';
-        const player2InProfiles = profileGameNames.includes(player2GameName.toLowerCase());
-
-        if (!player2InProfiles) {
-          console.log(`Game name "${player2GameName}" not found in profiles`);
-          return;
-        }
-
-        // Fetch stats for both players
+        // --- LEFT SIDE: "YOU" (for now hardcoded as T3rroth) ---
+        // TODO: later, replace this block with:
+        //  - use currentProfile.riotID, split into game_name / tag_line
+        //  - query player_summaries based on the logged-in user's Riot ID
         const { data: data1, error: error1 } = await supabase
           .from('player_summaries')
-          .select('avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda')
-          .eq('game_name', player1GameName)
-          .eq('tag_line', 'NA1')
+          .select(
+            'avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda'
+          )
+          .eq('game_name', 'T3rroth')
+          .eq('tag_line', 'NA1') // TODO: replace with user's tag later
           .maybeSingle();
 
+        if (error1 || !data1) {
+          console.log('Error fetching T3rroth stats or not found:', error1);
+          return;
+        }
+
+        // If no rival set, show T3rroth only (keep bars neutral at 0.5)
+        if (!currentProfile.rival_profile_id) {
+          setPlayerData1(data1);
+          setPlayerData2(null);
+          setProgressValues([0.5, 0.5, 0.5, 0.5, 0.5]);
+          return;
+        }
+
+        // --- RIGHT SIDE: RIVAL (dynamic via rival_profile_id / puuid) ---
         const { data: data2, error: error2 } = await supabase
           .from('player_summaries')
-          .select('avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda')
-          .eq('game_name', player2GameName)
-          .eq('tag_line', '333')
+          .select(
+            'avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda, game_name, tag_line'
+          )
+          .eq('puuid', currentProfile.rival_profile_id)
           .maybeSingle();
 
-        if (error1 || error2) {
-          console.log('Error fetching stats:', error1 || error2);
+        if (error2 || !data2) {
+          console.log('Error fetching rival stats or not found:', error2);
           return;
         }
 
-        if (!data1 || !data2) {
-          console.log('One or both players not found in database');
-          return;
-        }
-
-        // Store player data in state
         setPlayerData1(data1);
         setPlayerData2(data2);
 
-        // Calculate averages
+        // Also keep rival name in sync if it somehow wasn't set yet
+        if (data2.game_name && rivalName === 'Rival') {
+          setRivalName(data2.game_name);
+        }
+
         const avgStats: PlayerStats = {
-          avg_damage_ratio: data1.avg_damage /((data1.avg_damage || 0) + (data2.avg_damage || 0)),
-          avg_vision_score_ratio: data1.avg_vision_score / ((data1.avg_vision_score || 0) + (data2.avg_vision_score || 0)),
-          avg_impact_score_ratio: data1.avg_impact_score  / ((data1.avg_impact_score || 0) + (data2.avg_impact_score || 0)),
-          avg_cs_ratio: data1.avg_cs / ((data1.avg_cs || 0) + (data2.avg_cs || 0)),
-          avg_gold_ratio: data1.avg_gold / ((data1.avg_gold || 0) + (data2.avg_gold || 0)),
-          avg_kda_ratio: data1.avg_kda  / ((data1.avg_kda || 0) + (data2.avg_kda || 0)),
+          avg_damage_ratio:
+            data1.avg_damage /
+            ((data1.avg_damage || 0) + (data2.avg_damage || 0)),
+          avg_vision_score_ratio:
+            data1.avg_vision_score /
+            ((data1.avg_vision_score || 0) + (data2.avg_vision_score || 0)),
+          avg_impact_score_ratio:
+            data1.avg_impact_score /
+            ((data1.avg_impact_score || 0) + (data2.avg_impact_score || 0)),
+          avg_cs_ratio:
+            data1.avg_cs / ((data1.avg_cs || 0) + (data2.avg_cs || 0)),
+          avg_gold_ratio:
+            data1.avg_gold / ((data1.avg_gold || 0) + (data2.avg_gold || 0)),
+          avg_kda_ratio:
+            data1.avg_kda / ((data1.avg_kda || 0) + (data2.avg_kda || 0)),
         };
 
         const ratios = [
@@ -158,9 +199,63 @@ const FindRivalScreen: React.FC = () => {
       }
     };
 
-    loadProfile();
     fetchAverageStats();
-  }, []);
+  }, [currentProfile?.rival_profile_id, rivalName]);
+
+  // Load rivals from player_summaries when opening modal
+  const openRivalSelector = async () => {
+    try {
+      setLoadingRivals(true);
+      setRivalSelectorOpen(true);
+
+      const { data, error } = await supabase
+        .from('player_summaries')
+        .select('puuid, game_name, tag_line');
+
+      if (error) {
+        console.log('Error loading rival options from player_summaries:', error);
+        Alert.alert('Error', 'Could not load players');
+        return;
+      }
+
+      setRivalOptions((data ?? []) as RivalOption[]);
+    } finally {
+      setLoadingRivals(false);
+    }
+  };
+
+  // When user taps a rival from list
+  const handleSelectRival = async (rival: RivalOption) => {
+    if (!currentProfile) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          has_rival: true,
+          // store player_summaries.puuid in profiles.rival_profile_id
+          rival_profile_id: rival.puuid,
+        })
+        .eq('id', currentProfile.id);
+
+      if (error) {
+        console.log('Error setting rival:', error);
+        Alert.alert('Error', `Could not set rival: ${error.message}`);
+        return;
+      }
+
+      setRivalName(rival.game_name);
+      setCurrentProfile({
+        ...currentProfile,
+        has_rival: true,
+        rival_profile_id: rival.puuid,
+      });
+      setRivalSelectorOpen(false);
+  
+    } catch (err: any) {
+      console.log('Error selecting rival (unexpected):', err);
+      Alert.alert('Error', 'Unexpected error while setting rival');
+    }
+  };
 
   if (!currentProfile) {
     return (
@@ -169,6 +264,14 @@ const FindRivalScreen: React.FC = () => {
       </View>
     );
   }
+
+  const lowerSearch = searchTerm.toLowerCase();
+  const filteredRivals = rivalOptions.filter((opt) => {
+    if (!lowerSearch) return true;
+    const name = opt.game_name.toLowerCase();
+    const tag = (opt.tag_line || '').toLowerCase();
+    return name.includes(lowerSearch) || tag.includes(lowerSearch);
+  });
 
   return (
     <View style={styles.container2} {...panResponder.panHandlers}>
@@ -192,12 +295,13 @@ const FindRivalScreen: React.FC = () => {
         style={styles.titleBarImage}
         resizeMode="contain"
       />
+
       <View style={styles.progressContainer}>
         <View style={styles.statContainer}>
           <Text style={styles.statLabel}>KDA</Text>
-          <Progress.Bar 
-            progress={progressValues[0]} 
-            width={230} 
+          <Progress.Bar
+            progress={progressValues[0]}
+            width={230}
             height={30}
             color="#a23e8c"
             unfilledColor="#4f8fba"
@@ -209,9 +313,9 @@ const FindRivalScreen: React.FC = () => {
         </View>
         <View style={styles.statContainer}>
           <Text style={styles.statLabel}>DMG</Text>
-          <Progress.Bar 
-            progress={progressValues[1]} 
-            width={230} 
+          <Progress.Bar
+            progress={progressValues[1]}
+            width={230}
             height={30}
             color="#a23e8c"
             unfilledColor="#4f8fba"
@@ -223,9 +327,9 @@ const FindRivalScreen: React.FC = () => {
         </View>
         <View style={styles.statContainer}>
           <Text style={styles.statLabel}>CS</Text>
-          <Progress.Bar 
-            progress={progressValues[2]} 
-            width={230} 
+          <Progress.Bar
+            progress={progressValues[2]}
+            width={230}
             height={30}
             color="#a23e8c"
             unfilledColor="#4f8fba"
@@ -237,9 +341,9 @@ const FindRivalScreen: React.FC = () => {
         </View>
         <View style={styles.statContainer}>
           <Text style={styles.statLabel}>GOLD</Text>
-          <Progress.Bar 
-            progress={progressValues[3]} 
-            width={230} 
+          <Progress.Bar
+            progress={progressValues[3]}
+            width={230}
             height={30}
             color="#a23e8c"
             unfilledColor="#4f8fba"
@@ -251,9 +355,9 @@ const FindRivalScreen: React.FC = () => {
         </View>
         <View style={styles.statContainer}>
           <Text style={styles.statLabel}>VISION</Text>
-          <Progress.Bar 
-            progress={progressValues[4]} 
-            width={230} 
+          <Progress.Bar
+            progress={progressValues[4]}
+            width={230}
             height={30}
             color="#a23e8c"
             unfilledColor="#4f8fba"
@@ -264,33 +368,97 @@ const FindRivalScreen: React.FC = () => {
           />
         </View>
       </View>
-      <Text style={styles.titleText}>Plants</Text>
+
+      <Text style={styles.titleText}>{rivalName}</Text>
       <Text style={styles.subText}>Last 5 Games</Text>
-      <Text style={[
-        styles.impactText,
-        { color: playerData1 && playerData2 
-          ? (playerData1.avg_impact_score > playerData2.avg_impact_score ? '#22c55e' : '#ef4444')
-          : '#471B2B' }
-      ]}>
-        {playerData1 && playerData2 
-          ? (playerData1.avg_impact_score > playerData2.avg_impact_score ? '>' : '<')
+      <Text
+        style={[
+          styles.impactText,
+          {
+            color:
+              playerData1 && playerData2
+                ? playerData1.avg_impact_score > playerData2.avg_impact_score
+                  ? '#a23e8c'
+                  : '#4f8fba'
+                : '#471B2B',
+          },
+        ]}
+      >
+        {playerData1 && playerData2
+          ? playerData1.avg_impact_score > playerData2.avg_impact_score
+            ? '>'
+            : '<'
           : '-'}
       </Text>
+
+      {/* Left (you / T3rroth for now) */}
       <Image
         source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_PinkCat_Headshot_Default_AARIALMA.gif')}
         style={styles.leftCatImage}
         resizeMode="contain"
       />
-      <Image
-        source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_BlueCat_Headshot_Default_AARIALMA.gif')}
-        style={styles.rightCatImage}
-        resizeMode="contain"
-      />
+
+      {/* Right (rival) – clickable */}
+      <Pressable style={styles.rightCatPressable} onPress={openRivalSelector}>
+        <Image
+          source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_BlueCat_Headshot_Default_AARIALMA.gif')}
+          style={styles.rightCatImage}
+          resizeMode="contain"
+        />
+      </Pressable>
+
       <FloatingButton useBack={true} />
+
+      {/* Rival selector modal */}
+      <Modal
+        visible={rivalSelectorOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRivalSelectorOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Choose your rival</Text>
+
+            {/* Search bar */}
+            <TextInput
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder="Search by name or tag..."
+              placeholderTextColor="#F9E4C8"
+              style={styles.modalSearch}
+            />
+
+            {loadingRivals ? (
+              <Text style={styles.modalText}>Loading players...</Text>
+            ) : (
+              <ScrollView style={styles.modalList}>
+                {filteredRivals.map((opt) => (
+                  <Pressable
+                    key={opt.puuid}
+                    style={styles.modalItem}
+                    onPress={() => handleSelectRival(opt)}
+                  >
+                    <Text style={styles.modalItemText}>{opt.game_name}</Text>
+                    {opt.tag_line && (
+                      <Text style={styles.modalItemSub}>#{opt.tag_line}</Text>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            <Pressable
+              style={styles.modalCloseButton}
+              onPress={() => setRivalSelectorOpen(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
-}
-
+};
 
 export default FindRivalScreen;
 
@@ -322,85 +490,85 @@ const styles = StyleSheet.create({
   },
   container2: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   title2: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   backgroundImage: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
     zIndex: 1,
   },
   rivalBarImage: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
     zIndex: 3,
   },
   statsImage: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
     zIndex: 2,
   },
   titleBarImage: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
     zIndex: 4,
   },
   titleText: {
-    position: "absolute",
-    fontFamily: "PixelifySans_500Medium",
+    position: 'absolute',
+    fontFamily: 'PixelifySans_500Medium',
     fontSize: 50,
-    color: "#471B2B",
-    top: "8%",
+    color: '#471B2B',
+    top: '8%',
     marginTop: 30,
     left: 0,
     right: 0,
     zIndex: 5,
-    textAlign: "center",
+    textAlign: 'center',
   },
   subText: {
-    position: "absolute",
-    fontFamily: "Jersey10_400Regular",
+    position: 'absolute',
+    fontFamily: 'Jersey10_400Regular',
     fontSize: 40,
-    color: "#471B2B",
-    top: "8%",
+    color: '#471B2B',
+    top: '8%',
     marginTop: 110,
     left: 0,
     right: 0,
     zIndex: 5,
-    textAlign: "center",
+    textAlign: 'center',
   },
   impactText: {
-    position: "absolute",
-    fontFamily: "Jersey10_400Regular",
+    position: 'absolute',
+    fontFamily: 'Jersey10_400Regular',
     fontSize: 90,
-    color: "#471B2B",
-    top: "8%",
+    color: '#471B2B',
+    top: '8%',
     marginTop: 625,
     left: 0,
     right: 0,
     zIndex: 5,
-    textAlign: "center",
+    textAlign: 'center',
   },
   progressContainer: {
-    position: "absolute",
-    top: "35%",
+    position: 'absolute',
+    top: '35%',
     marginTop: -90,
     left: 0,
     right: 0,
-    alignItems: "center",
+    alignItems: 'center',
     zIndex: 6,
     gap: 7,
   },
@@ -409,33 +577,112 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
   statContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 5,
   },
   statLabel: {
-    fontFamily: "Jersey10_400Regular",
+    fontFamily: 'Jersey10_400Regular',
     fontSize: 25,
-    color: "#471B2B",
+    color: '#471B2B',
     marginBottom: 4,
-    textAlign: "center",
+    textAlign: 'center',
   },
   leftCatImage: {
-    position: "absolute",
+    position: 'absolute',
     width: 200,
     height: 200,
-    top: "8%",
+    top: '8%',
     marginTop: 525,
-    left: "-1%",
+    left: '-1%',
     zIndex: 5,
     transform: [{ scaleX: -1 }],
   },
-  rightCatImage: {
-    position: "absolute",
+  rightCatPressable: {
+    position: 'absolute',
     width: 200,
     height: 200,
-    top: "8%",
+    top: '8%',
     marginTop: 525,
-    right: "-1%",
+    right: '-1%',
     zIndex: 5,
+  },
+  rightCatImage: {
+    width: '100%',
+    height: '100%',
+  },
+  // modal styles in your color scheme
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    width: '85%',
+    maxHeight: '70%',
+    backgroundColor: '#682A2E', // deep reddish-brown
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 3,
+    borderColor: '#BC8845', // golden border
+  },
+  modalTitle: {
+    fontSize: 28,
+    color: '#FDE68A',
+    marginBottom: 8,
+    textAlign: 'center',
+    fontFamily: 'PixelifySans_500Medium',
+  },
+  modalSearch: {
+    backgroundColor: '#471B2B',
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    color: '#FDE68A',
+    fontFamily: 'Jersey10_400Regular',
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: '#BC8845',
+    fontSize: 16,
+  },
+  modalText: {
+    color: '#F9FAFB',
+    textAlign: 'center',
+    fontSize: 16,
+    fontFamily: 'Jersey10_400Regular',
+  },
+  modalList: {
+    marginTop: 4,
+  },
+  modalItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#A65F36',
+  },
+  modalItemText: {
+    color: '#F9FAFB',
+    fontSize: 22,
+    fontFamily: 'Jersey10_400Regular',
+  },
+  modalItemSub: {
+    color: '#FDE68A',
+    fontSize: 14,
+    marginTop: 2,
+  },
+  modalCloseButton: {
+    marginTop: 12,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+    backgroundColor: '#471B2B',
+  },
+  modalCloseText: {
+    color: '#F9FAFB',
+    fontSize: 18,
+    fontFamily: 'Jersey10_400Regular',
   },
 });
