@@ -49,18 +49,52 @@ const FindRivalScreen: React.FC = () => {
 
     const fetchAverageStats = async () => {
       try {
+        // First check if game_names exist in profiles
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('riotID')
+          .not('riotID', 'is', null);
+
+        if (profilesError) {
+          console.log('Error fetching profiles:', profilesError);
+          return;
+        }
+
+        // Extract game names from profiles (part before #) and convert to lowercase
+        const profileGameNames = profiles
+          ?.map(profile => profile.riotID?.split('#')[0]?.toLowerCase())
+          .filter(name => name) || [];
+
+        // Check if T3rroth exists in profiles (case-insensitive)
+        const player1GameName = 'T3rroth';
+        const player1InProfiles = profileGameNames.includes(player1GameName.toLowerCase());
+
+        if (!player1InProfiles) {
+          console.log(`Game name "${player1GameName}" not found in profiles`);
+          return;
+        }
+
+        // Check if Plants exists in profiles (case-insensitive)
+        const player2GameName = 'Plants';
+        const player2InProfiles = profileGameNames.includes(player2GameName.toLowerCase());
+
+        if (!player2InProfiles) {
+          console.log(`Game name "${player2GameName}" not found in profiles`);
+          return;
+        }
+
         // Fetch stats for both players
         const { data: data1, error: error1 } = await supabase
           .from('player_summaries')
           .select('avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda')
-          .eq('game_name', 'T3rroth')
+          .eq('game_name', player1GameName)
           .eq('tag_line', 'NA1')
           .maybeSingle();
 
         const { data: data2, error: error2 } = await supabase
           .from('player_summaries')
           .select('avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda')
-          .eq('game_name', 'Plants')
+          .eq('game_name', player2GameName)
           .eq('tag_line', '333')
           .maybeSingle();
 
