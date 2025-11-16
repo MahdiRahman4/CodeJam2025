@@ -1,9 +1,11 @@
 import { StyleSheet, View, Text } from "react-native";
+import FloatingButton from "@/components/rival-button";
 
 export default function RivalScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Rival Screen</Text>
+      <FloatingButton useBack={true} />
     </View>
   );
 }

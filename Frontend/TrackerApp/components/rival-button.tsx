@@ -1,13 +1,24 @@
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 
-export default function FloatingButton() {
+interface FloatingButtonProps {
+  route?: string;
+  useBack?: boolean;
+}
+
+export default function FloatingButton({ route = "/(tabs)/rival", useBack = false }: FloatingButtonProps) {
     const router = useRouter();
   
     return (
       <TouchableOpacity
         style={styles.floatingBtn}
-        onPress={() => router.push("/(tabs)/rival")}
+        onPress={() => {
+          if (useBack) {
+            router.replace("/(tabs)" as any);
+          } else if (route) {
+            router.replace(route as any);
+          }
+        }}
       >
         <Text style={{ color: "#fff", fontWeight: "bold" }}>Insert Image Here</Text>
       </TouchableOpacity>
