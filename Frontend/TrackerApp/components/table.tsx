@@ -1,11 +1,16 @@
+// components/table.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 
 export interface StatsRow {
   name: string;
-  champion: string;
-  role: string;
-  winRate: string;
+  avg_impact_score: number;
+  avg_kda: number;              
+  avg_damage: number;
+  avg_cs: number;
+  avg_gold: number;
+  avg_vision_score: number;
+
 }
 
 interface StatsTableProps {
@@ -13,70 +18,67 @@ interface StatsTableProps {
   title?: string;
 }
 
+// just some demo data if no data prop is passed
 const defaultData: StatsRow[] = [
-  { name:"Aariyan", champion: 'Ahri', role: 'Mid', winRate: '52%' },
-  { name: "Yasin", champion: 'Lee Sin', role: 'Jungle', winRate: '49%' },
-  { name: "Liam", champion: 'Jinx', role: 'ADC', winRate: '51%' },
-  { name: "Mahdi",champion: 'Thresh', role: 'Support', winRate: '50%' },
-];
-const rivalsData: StatsRow[] = [
-  { name: "Rival 1", champion: 'Yasuo', role: 'Mid', winRate: '48%' },
-  { name: "Rival 2", champion: 'Riven', role: 'Top', winRate: '51%' },
-  { name: "Rival 3", champion: 'Kha\'Zix', role: 'Jungle', winRate: '53%' },
-];
+  {
+    name: 'DemoPlayer',
+    avg_impact_score: 75,
+    avg_kda: 3.5,
+    avg_damage: 25000,
+    avg_cs: 180,
+    avg_gold: 12000,
+    avg_vision_score: 30,
 
+  },
+];
 
 const StatsTable: React.FC<StatsTableProps> = ({
   data,
   title = 'Montreal Leaderboard',
 }) => {
-  // true = showing rivals, false = Montreal
   const [showRivals, setShowRivals] = useState(false);
 
-  // Decide which data & title to show
   const montrealData = data ?? defaultData;
-  const rowsToShow = showRivals ? rivalsData : montrealData;
-  const currentTitle = showRivals ? 'Rivals Leaderboard' : title;
+  const rowsToShow = montrealData;
+  const currentTitle = title;
 
   const handleToggleBoard = () => {
-    setShowRivals((prev) => !prev);
+    setShowRivals(prev => !prev);
   };
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{currentTitle}</Text>
 
-      <View>
-        <Pressable
-          onPress={handleToggleBoard}
-          style={{
-            backgroundColor: '#3B82F6',
-            padding: 10,
-            borderRadius: 8,
-            marginBottom: 10,
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: 'white' }}>
-            {showRivals ? 'See Montreal Leaderboard' : 'See Rivals'}
-          </Text>
-        </Pressable>
-      </View>
+      {/* if you want to keep a rivals toggle later, reuse this button */}
+      {/* <Pressable ... onPress={handleToggleBoard}> ... </Pressable> */}
 
       {/* HEADER */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.cell, styles.headerCell, styles.nameCol]}>
           Name
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.champCol]}>
-          Champion
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+          Impact
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.roleCol]}>
-          Role
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+          KDA
         </Text>
-        <Text style={[styles.cell, styles.headerCell, styles.winCol]}>
-          Win %
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+          DMG
         </Text>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+          CS
+        </Text>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+          Gold
+        </Text>
+        <Text style={[styles.cell, styles.headerCell, styles.col]}>
+          Vision
+        </Text>
+        
+        
+        
       </View>
 
       {/* BODY */}
@@ -92,15 +94,25 @@ const StatsTable: React.FC<StatsTableProps> = ({
             <Text style={[styles.cell, styles.nameCol]} numberOfLines={1}>
               {item.name}
             </Text>
-            <Text style={[styles.cell, styles.champCol]} numberOfLines={1}>
-              {item.champion}
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {item.avg_impact_score.toFixed(1)}
             </Text>
-            <Text style={[styles.cell, styles.roleCol]} numberOfLines={1}>
-              {item.role}
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {item.avg_kda.toFixed(2)}
             </Text>
-            <Text style={[styles.cell, styles.winCol]} numberOfLines={1}>
-              {item.winRate}
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.round(item.avg_damage)}
             </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {item.avg_vision_score.toFixed(1)}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {item.avg_cs.toFixed(1)}
+            </Text>
+            <Text style={[styles.cell, styles.col]} numberOfLines={1}>
+              {Math.round(item.avg_gold)}
+            </Text>
+            
           </View>
         ))}
       </ScrollView>
@@ -108,24 +120,20 @@ const StatsTable: React.FC<StatsTableProps> = ({
   );
 };
 
-
 export default StatsTable;
 
 const styles = StyleSheet.create({
-
   card: {
     backgroundColor: '#111827',
     borderRadius: 12,
     padding: 12,
-    marginVertical: 16,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    width: '90%',
-    maxWidth: 400,
-    alignSelf: 'center',
+    width: '100%',
+    flex: 1,           // 👈 let the card grow to fill parent
   },
   title: {
     fontSize: 18,
@@ -149,33 +157,28 @@ const styles = StyleSheet.create({
   },
   body: {
     marginTop: 4,
-    maxHeight: 200,
+    flex: 1,           // 👈 fill the card vertically
+    // remove maxHeight if you had it
+    // maxHeight: 200,
   },
   cell: {
     paddingVertical: 6,
     paddingHorizontal: 4,
     color: '#E5E7EB',
-    fontSize: 14,
+    fontSize: 12,
   },
   headerCell: {
     fontWeight: '700',
     textTransform: 'uppercase',
-    fontSize: 12,
+    fontSize: 10,
     letterSpacing: 0.5,
   },
   nameCol: {
-    flex: 1,
-  },
-  champCol: {
     flex: 2,
   },
-  roleCol: {
+  col: {
     flex: 1,
     textAlign: 'center' as const,
-  },
-  winCol: {
-    flex: 1,
-    textAlign: 'right' as const,
   },
   evenRow: {
     backgroundColor: '#030712',
