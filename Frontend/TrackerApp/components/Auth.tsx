@@ -5,8 +5,9 @@ import {
   View,
   Text,
   TextInput,
-  Button,
+  TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 
@@ -70,6 +71,15 @@ export default function Auth() {
 
   return (
     <View style={styles.container}>
+      {/* Logo */}
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('../asset_AARI/Exported/Logo/CATS_Logo_AARIALMA.gif')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+
       {/* Email */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Text style={styles.label}>Email</Text>
@@ -113,7 +123,13 @@ export default function Auth() {
       )}
 
       <View style={styles.verticallySpaced}>
-        <Button title="Sign up" disabled={loading} onPress={signUpWithEmail} />
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          disabled={loading} 
+          onPress={signUpWithEmail}
+        >
+          <Text style={styles.buttonText}>Sign up</Text>
+        </TouchableOpacity>
       </View>
     </View>
   )
@@ -123,6 +139,8 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 40,
     padding: 12,
+    backgroundColor: '#A65F36',
+    flex: 1,
   },
   verticallySpaced: {
     paddingTop: 4,
@@ -136,13 +154,47 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontWeight: '600',
     color: '#fff',
+    fontFamily: 'Jersey10_400Regular',
+    fontSize: 22,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#471B2B',
+    borderRadius: 0,
     paddingHorizontal: 10,
     paddingVertical: 8,
     color: '#fff',
+    fontFamily: 'Jersey10_400Regular',
+    fontSize: 16,
+    backgroundColor: '#BC8845',
+  },
+  logoContainer: {
+    marginTop: -30,
+    marginBottom: -50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 300,
+    height: 300,
+  },
+  button: {
+    backgroundColor: '#471B2B',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#2A0F1A',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontFamily: 'Jersey10_400Regular',
+    fontWeight: 'bold',
   },
 })
