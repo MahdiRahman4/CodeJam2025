@@ -81,7 +81,7 @@ export default function CharacterScreen() {
 
   const itemPool = [
     {
-      id: "hat1",
+      id: "baseball",
       name: "Baseball Hat",
       src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif"),
     },
@@ -91,9 +91,44 @@ export default function CharacterScreen() {
       src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Beret_AARIALMA.gif"),
     },
     {
-      id: "straw",
+      id: "strawhat",
       name: "Straw Hat",
       src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Strawhat_AARIALMA.gif"),
+    },
+    {
+      id: "astronaut",
+      name: "Astronaut",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Astronaut_AARIALMA.gif"),
+    },
+    {
+      id: "bowler",
+      name: "Bowler Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Bowler_AARIALMA.gif"),
+    },
+    {
+      id: "chef",
+      name: "Chef Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Chef_AARIALMA.gif"),
+    },
+    {
+      id: "fez",
+      name: "Fez",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Fez_AARIALMA.gif"),
+    },
+    {
+      id: "sailor",
+      name: "Sailor Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Sailor_AARIALMA.gif"),
+    },
+    {
+      id: "sheriff",
+      name: "Sheriff Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Sheriff_AARIALMA.gif"),
+    },
+    {
+      id: "turban",
+      name: "Turban",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Turban_AARIALMA.gif"),
     },
   ];
 
@@ -643,16 +678,19 @@ const styles = StyleSheet.create({
   },
   popupCard: {
     width: 260,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: "#BC8845",
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
     elevation: 6,
+    borderWidth: 3,
+    borderColor: "#471B2B",
   },
   popupTitle: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 8,
+    color: "#471B2B",
   },
   popupItem: {
     width: 120,
@@ -663,10 +701,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     fontWeight: "600",
+    color: "#471B2B",
   },
   popupClose: {
     marginTop: 8,
-    backgroundColor: "#6B3A2D",
+    backgroundColor: "#471B2B",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -738,15 +777,18 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "90%",
     maxWidth: 560,
-    backgroundColor: "white",
+    backgroundColor: "#BC8845",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#471B2B",
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 12,
+    color: "#471B2B",
   },
   invItem: {
     alignItems: "center",
@@ -760,10 +802,11 @@ const styles = StyleSheet.create({
   invName: {
     marginTop: 6,
     fontSize: 12,
+    color: "#471B2B",
   },
   modalClose: {
     marginTop: 12,
-    backgroundColor: "#6B3A2D",
+    backgroundColor: "#471B2B",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
