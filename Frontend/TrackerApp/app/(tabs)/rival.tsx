@@ -205,6 +205,7 @@ const FindRivalScreen: React.FC = () => {
         </View>
       </View>
       <Text style={styles.titleText}>Plants</Text>
+      <Text style={styles.subText}>Last 5 Games</Text>
       <FloatingButton useBack={true} />
     </View>
   );
@@ -289,15 +290,27 @@ const styles = StyleSheet.create({
     zIndex: 5,
     textAlign: "center",
   },
+  subText: {
+    position: "absolute",
+    fontFamily: "Jersey10_400Regular",
+    fontSize: 40,
+    color: "#471B2B",
+    top: "8%",
+    marginTop: 110,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    textAlign: "center",
+  },
   progressContainer: {
     position: "absolute",
     top: "35%",
-    marginTop: -100,
+    marginTop: -90,
     left: 0,
     right: 0,
     alignItems: "center",
     zIndex: 6,
-    gap: 10,
+    gap: 7,
   },
   progressBar: {
     marginBottom: 0,
@@ -308,8 +321,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   statLabel: {
-    fontFamily: "PixelifySans_500Medium",
-    fontSize: 20,
+    fontFamily: "Jersey10_400Regular",
+    fontSize: 25,
     color: "#471B2B",
     marginBottom: 4,
     textAlign: "center",
