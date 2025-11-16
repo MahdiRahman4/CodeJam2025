@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   Animated,
   ImageBackground,
@@ -7,34 +7,415 @@ import {
   Text,
   Image,
   PanResponder,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  FlatList,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-
 
 export default function CharacterScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const transition = useRef(new Animated.Value(0)).current; // fall animation
+  const cloneAnim = useRef(new Animated.Value(0)).current;   // horizontal clone animation
   const router = useRouter();
+
+  const [inventory, setInventory] = useState<
+    Array<{ id: string; name: string; src: any }>
+  >([]);
+  const [showInventory, setShowInventory] = useState(false);
+
+  type ChestState = "idle" | "moving" | "opening" | "opened" | "cooldown";
+  const [leftChest, setLeftChest] = useState<ChestState>("moving");
+  const [rightChest, setRightChest] = useState<ChestState>("moving");
+
+  const [leftNextAvailable, setLeftNextAvailable] = useState<number | null>(
+    null
+  );
+  const [rightNextAvailable, setRightNextAvailable] = useState<number | null>(
+    null
+  );
+
+  const LEFT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+  const RIGHT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  const LEFT_KEY = "chest_left_next";
+  const RIGHT_KEY = "chest_right_next";
+
+  // ticking clock to update countdown displays
+  const [nowTick, setNowTick] = useState<number>(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatRemaining = (next: number | null) => {
+    if (!next) return null;
+    const ms = next - nowTick;
+    if (ms <= 0) return null;
+    const totalSec = Math.floor(ms / 1000);
+    const days = Math.floor(totalSec / (24 * 3600));
+    const hours = Math.floor((totalSec % (24 * 3600)) / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const [popupItem, setPopupItem] = useState<{
+    id: string;
+    name: string;
+    src: any;
+  } | null>(null);
+
+  // assets
+  const chestMoving = require("../../asset_AARI/Exported/Chest/CATS_GreyChest__moving_AARIALMA.gif");
+  const chestOpening = require("../../asset_AARI/Exported/Chest/CATS_GreyChest__opening_AARIALMA.gif");
+  const chestThumb = require("../../asset_AARI/Exported/Chest/CATS_GreyChest_Thumbnail_AARIALMA.png");
+
+  const catGif = require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif");
+
+  const itemPool = [
+    {
+      id: "baseball",
+      name: "Baseball Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif"),
+    },
+    {
+      id: "beret",
+      name: "Beret",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Beret_AARIALMA.gif"),
+    },
+    {
+      id: "strawhat",
+      name: "Straw Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Strawhat_AARIALMA.gif"),
+    },
+    {
+      id: "astronaut",
+      name: "Astronaut",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Astronaut_AARIALMA.gif"),
+    },
+    {
+      id: "bowler",
+      name: "Bowler Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Bowler_AARIALMA.gif"),
+    },
+    {
+      id: "chef",
+      name: "Chef Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Chef_AARIALMA.gif"),
+    },
+    {
+      id: "fez",
+      name: "Fez",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Fez_AARIALMA.gif"),
+    },
+    {
+      id: "sailor",
+      name: "Sailor Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Sailor_AARIALMA.gif"),
+    },
+    {
+      id: "sheriff",
+      name: "Sheriff Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Sheriff_AARIALMA.gif"),
+    },
+    {
+      id: "turban",
+      name: "Turban",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Turban_AARIALMA.gif"),
+    },
+  ];
+
+  // handle chest opening lifecycle
+  const openChest = (side: "left" | "right") => {
+    const now = Date.now();
+    if (side === "left") {
+      if (leftNextAvailable && now < leftNextAvailable) return; // still cooling down
+      setLeftChest("opening");
+      const next = now + LEFT_COOLDOWN_MS;
+      setLeftNextAvailable(next);
+      AsyncStorage.setItem(LEFT_KEY, String(next)).catch(() => {});
+      setTimeout(() => {
+        const item = itemPool[Math.floor(Math.random() * itemPool.length)];
+        setPopupItem(item);
+        setInventory((prev) => [...prev, item]);
+        setLeftChest("opened");
+        setTimeout(() => setLeftChest("cooldown"), 600);
+        const ms = next - Date.now();
+        if (ms > 0) setTimeout(() => setLeftChest("moving"), ms + 50);
+      }, 1400);
+    } else {
+      if (rightNextAvailable && now < rightNextAvailable) return; // still cooling down
+      setRightChest("opening");
+      const next = now + RIGHT_COOLDOWN_MS;
+      setRightNextAvailable(next);
+      AsyncStorage.setItem(RIGHT_KEY, String(next)).catch(() => {});
+      setTimeout(() => {
+        const item = itemPool[Math.floor(Math.random() * itemPool.length)];
+        setPopupItem(item);
+        setInventory((prev) => [...prev, item]);
+        setRightChest("opened");
+        setTimeout(() => setRightChest("cooldown"), 600);
+        const ms = next - Date.now();
+        if (ms > 0) setTimeout(() => setRightChest("moving"), ms + 50);
+      }, 1400);
+    }
+  };
+
+  // load persisted next-available times
+  useEffect(() => {
+    (async () => {
+      try {
+        const lv = await AsyncStorage.getItem(LEFT_KEY);
+        const rv = await AsyncStorage.getItem(RIGHT_KEY);
+        const now = Date.now();
+        if (lv) {
+          const n = Number(lv);
+          setLeftNextAvailable(n);
+          if (n > now) {
+            setLeftChest("cooldown");
+            setTimeout(() => setLeftChest("moving"), n - now + 50);
+          } else {
+            setLeftChest("moving");
+          }
+        }
+        if (rv) {
+          const n = Number(rv);
+          setRightNextAvailable(n);
+          if (n > now) {
+            setRightChest("cooldown");
+            setTimeout(() => setRightChest("moving"), n - now + 50);
+          } else {
+            setRightChest("moving");
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
+  // Debug: reset timers
+  const resetTimers = async () => {
+    try {
+      await AsyncStorage.removeItem(LEFT_KEY);
+      await AsyncStorage.removeItem(RIGHT_KEY);
+      setLeftNextAvailable(null);
+      setRightNextAvailable(null);
+      setLeftChest("moving");
+      setRightChest("moving");
+      console.log("Timers reset!");
+    } catch (e) {
+      console.error("Failed to reset:", e);
+    }
+  };
+
+  // Expose reset function globally for dev
+  useEffect(() => {
+    (global as any).__resetChestTimers = resetTimers;
+  }, []);
+
+  // reset to moving after opened
+  useEffect(() => {
+    if (leftChest === "opened") {
+      const t = setTimeout(() => setLeftChest("moving"), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [leftChest]);
+
+  useEffect(() => {
+    if (rightChest === "opened") {
+      const t = setTimeout(() => setRightChest("moving"), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [rightChest]);
 
   const animatedStyle = {
     transform: [{ translateX: shakeAnim }],
   };
 
-  // swipe left → rival, swipe right → leaderboard
+  // 🔸 ANIMATED POSITIONS for shared elements (0 = index layout, 1 = "towards rivals")
+  const namebarAnimatedStyle = {
+    position: "absolute" as const,
+    transform: [
+      {
+        translateY: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -30], // move up toward rivals title area
+        }),
+      },
+      {
+        scale: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.815, 0.815],
+        }),
+      },
+    ],
+  };
+
+  const circleAnimatedStyle = {
+    position: "absolute" as const,
+    transform: [
+      {
+        translateX: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 40], // small horizontal nudge
+        }),
+      },
+      {
+        translateY: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 600], // fall down
+        }),
+      },
+      {
+        scale: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.815, 1.1],
+        }),
+      },
+    ],
+  };
+
+  // 🔹 duplicate circle that appears at the bottom and slides right
+  const cloneCircleStyle = {
+    position: "absolute" as const,
+    opacity: cloneAnim,
+    transform: [
+      {
+        translateX: cloneAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [40, 275], // from where the main circle lands → to the right
+        }),
+      },
+      {
+        translateY: 600, // stay at bottom
+      },
+      {
+        scale: 1.1,
+      },
+    ],
+  };
+
+  const titleAnimatedStyle = {
+    transform: [
+      {
+        translateY: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -30],
+        }),
+      },
+      {
+        translateX: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -100],
+        }),
+      },
+    ],
+  };
+
+  // simple sparkle effect made from animated dots
+  const Sparkles = ({ size = 120 }: { size?: number }) => {
+    const count = 6;
+    const anims = Array.from({ length: count }).map(
+      () => useRef(new Animated.Value(0)).current
+    );
+
+    useEffect(() => {
+      const loops = anims.map((a, i) => {
+        const delay = i * 120;
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.parallel([
+              Animated.timing(a, {
+                toValue: 1,
+                duration: 400,
+                useNativeDriver: true,
+              }),
+            ]),
+            Animated.timing(a, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.delay(400),
+          ])
+        );
+      });
+      loops.forEach((l) => l.start());
+      return () => loops.forEach((l) => l.stop());
+    }, []);
+
+    const spots = Array.from({ length: count }).map((_, i) => {
+      const a = anims[i];
+      const left = Math.round(Math.random() * (size - 24));
+      const top = Math.round(Math.random() * (size - 24));
+      const scale = a.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.2, 1.2],
+      });
+      const opacity = a.interpolate({
+        inputRange: [0, 0.6, 1],
+        outputRange: [0, 1, 0],
+      });
+      return (
+        <Animated.View
+          key={i}
+          style={{
+            position: "absolute",
+            left,
+            top,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: "rgba(255,255,220,0.95)",
+            transform: [{ scale }],
+            opacity,
+          }}
+        />
+      );
+    });
+
+    return <View style={{ width: size, height: size }}>{spots}</View>;
+  };
+
+  // 🔸 swipe left → animate (fall + clone slide) then go to rival
+  //    swipe right → straight to leaderboard
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => {
         const { dx, dy } = gesture;
-        // only start if mostly horizontal swipe
         return Math.abs(dx) > 10 && Math.abs(dy) < 10;
       },
       onPanResponderRelease: (_, gesture) => {
         const { dx } = gesture;
 
         if (dx < -50) {
-          // swipe left
-          router.push("/(tabs)/rival");
+          // sequence: fall down, then clone moves right
+          Animated.sequence([
+            Animated.timing(transition, {
+              toValue: 1,
+              duration: 1000, // fall duration
+              useNativeDriver: true,
+            }),
+            Animated.timing(cloneAnim, {
+              toValue: 1,
+              duration: 600, // horizontal move duration
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            transition.setValue(0);
+            cloneAnim.setValue(0);
+            router.push("/(tabs)/rival");
+          });
         } else if (dx > 50) {
-          // swipe right
           router.push("/(tabs)/leaderboard");
         }
       },
@@ -48,26 +429,175 @@ export default function CharacterScreen() {
         style={styles.imageBackground}
         resizeMode="contain"
       >
-        <Image
+        {/* namebar */}
+        <Animated.Image
           source={require("../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMANamebar BG.png")}
+          style={namebarAnimatedStyle}
         />
-        <Text
-          style={{
-            fontFamily: "PixelifySans_500Medium",
-            fontSize: 50,
-            position: "absolute",
-            top: 125,
-            left: 150,
-            color: "#471B2B",
-          }}
+
+        {/* main falling circle */}
+        <Animated.Image
+          source={require("../../asset_AARI/Exported/Rivals/CATS_GachiBG_AARIALMACircle.png")}
+          style={circleAnimatedStyle}
+        />
+
+        {/* duplicate circle that slides right at the bottom */}
+        <Animated.Image
+          source={require("../../asset_AARI/Exported/Rivals/CATS_GachiBG_AARIALMACircle.png")}
+          style={cloneCircleStyle}
+        />
+
+        {/* title */}
+        <Animated.Text
+          style={[
+            {
+              fontFamily: "PixelifySans_500Medium",
+              fontSize: 50,
+              position: "absolute",
+              top: 125,
+              left: 150,
+              color: "#471B2B",
+            },
+            titleAnimatedStyle,
+          ]}
         >
           Plants
-        </Text>
+        </Animated.Text>
+
+        {/* Center cat (click to open inventory) */}
+        <Pressable
+          style={styles.catContainer}
+          onPress={() => setShowInventory(true)}
+          accessibilityLabel="Open inventory"
+        >
+          <Image source={catGif} style={styles.catImage} />
+        </Pressable>
+
+        {/* Item popup (after opening) */}
+        {popupItem && (
+          <View style={styles.popupContainer} pointerEvents="box-none">
+            <View style={styles.popupCard}>
+              <Text style={styles.popupTitle}>You found:</Text>
+              <Image source={popupItem.src} style={styles.popupItem} />
+              <Text style={styles.popupName}>{popupItem.name}</Text>
+              <TouchableOpacity
+                onPress={() => setPopupItem(null)}
+                style={styles.popupClose}
+              >
+                <Text style={{ color: "white" }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ImageBackground>
 
-      <Animated.View style={[styles.buttonContainer, animatedStyle]}>
-        {/* <FloatingButton />  // if you want it back */}
-      </Animated.View>
+      {/* Bottom chest bar */}
+      <View style={styles.chestBar}>
+        <TouchableOpacity onPress={() => openChest("left")} style={styles.chestSlot}>
+          <View
+            style={{
+              width: 110,
+              height: 110,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Image
+              source={
+                leftChest === "moving"
+                  ? chestMoving
+                  : leftChest === "opening"
+                  ? chestOpening
+                  : chestThumb
+              }
+              style={styles.chestImage}
+            />
+            {(leftChest === "opening" || leftChest === "opened") && (
+              <View style={styles.sparkleOverlay} pointerEvents="none">
+                <Sparkles size={110} />
+              </View>
+            )}
+            {leftChest === "cooldown" && <View style={styles.cooldownOverlay} />}
+            {leftChest === "cooldown" && leftNextAvailable && (
+              <View style={styles.countdownLabel} pointerEvents="none">
+                <Text style={styles.countdownText}>
+                  {formatRemaining(leftNextAvailable)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.chestCenterSpacer} />
+
+        <TouchableOpacity onPress={() => openChest("right")} style={styles.chestSlot}>
+          <View
+            style={{
+              width: 110,
+              height: 110,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Image
+              source={
+                rightChest === "moving"
+                  ? chestMoving
+                  : rightChest === "opening"
+                  ? chestOpening
+                  : chestThumb
+              }
+              style={styles.chestImage}
+            />
+            {(rightChest === "opening" || rightChest === "opened") && (
+              <View style={styles.sparkleOverlay} pointerEvents="none">
+                <Sparkles size={110} />
+              </View>
+            )}
+            {rightChest === "cooldown" && <View style={styles.cooldownOverlay} />}
+            {rightChest === "cooldown" && rightNextAvailable && (
+              <View style={styles.countdownLabel} pointerEvents="none">
+                <Text style={styles.countdownText}>
+                  {formatRemaining(rightNextAvailable)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Inventory modal */}
+      <Modal visible={showInventory} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Inventory</Text>
+            <FlatList
+              data={inventory}
+              keyExtractor={(i) => i.id + Math.random()}
+              horizontal
+              renderItem={({ item }) => (
+                <View style={styles.invItem}>
+                  <Image source={item.src} style={styles.invImage} />
+                  <Text style={styles.invName}>{item.name}</Text>
+                </View>
+              )}
+            />
+            <TouchableOpacity
+              onPress={() => setShowInventory(false)}
+              style={styles.modalClose}
+            >
+              <Text style={{ color: "white" }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Dev: Reset button */}
+      <TouchableOpacity onPress={resetTimers} style={styles.resetButton}>
+        <Text style={styles.resetButtonText}>Reset</Text>
+      </TouchableOpacity>
+
+      <Animated.View style={[styles.buttonContainer, animatedStyle]} />
     </View>
   );
 }
@@ -121,5 +651,178 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
+  },
+  catContainer: {
+    position: "absolute",
+    left: "33%",
+    right: "33%",
+    top: "35%",
+    width: 160,
+    height: 160,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  catImage: {
+    width: 140,
+    height: 140,
+    resizeMode: "contain",
+  },
+  popupContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popupCard: {
+    width: 260,
+    backgroundColor: "#BC8845",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    elevation: 6,
+    borderWidth: 3,
+    borderColor: "#471B2B",
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+    color: "#471B2B",
+  },
+  popupItem: {
+    width: 120,
+    height: 120,
+    resizeMode: "contain",
+  },
+  popupName: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#471B2B",
+  },
+  popupClose: {
+    marginTop: 8,
+    backgroundColor: "#471B2B",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  chestBar: {
+    position: "absolute",
+    bottom: "8%",
+    left: "5%",
+    right: "5%",
+    height: 140,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  chestSlot: {
+    width: 140,
+    height: 140,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chestImage: {
+    width: 110,
+    height: 110,
+    resizeMode: "contain",
+  },
+  chestCenterSpacer: {
+    flex: 1,
+  },
+  sparkleOverlay: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cooldownOverlay: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 8,
+  },
+  countdownLabel: {
+    position: "absolute",
+    bottom: 6,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  countdownText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 12,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "90%",
+    maxWidth: 560,
+    backgroundColor: "#BC8845",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#471B2B",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#471B2B",
+  },
+  invItem: {
+    alignItems: "center",
+    marginHorizontal: 8,
+  },
+  invImage: {
+    width: 96,
+    height: 96,
+    resizeMode: "contain",
+  },
+  invName: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#471B2B",
+  },
+  modalClose: {
+    marginTop: 12,
+    backgroundColor: "#471B2B",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  resetButton: {
+    position: "absolute",
+    top: 40,
+    right: 12,
+    backgroundColor: "#666",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  resetButtonText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
