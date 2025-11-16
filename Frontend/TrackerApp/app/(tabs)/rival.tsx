@@ -35,7 +35,7 @@ interface PlayerStats {
 
 interface RivalOption {
   game_name: string;  // from player_summaries.game_name
-  tag_line: string;   // from player_summaries.tag_line
+  tag_line?: string | null;   // from player_summaries.tag_line (optional)
 }
 
 const FindRivalScreen: React.FC = () => {
@@ -224,9 +224,12 @@ const FindRivalScreen: React.FC = () => {
       setLoadingRivals(true);
       setRivalSelectorOpen(true);
 
+      // Use the same query structure as leaderboard to ensure all leaderboard players appear
+      // Select the same fields that leaderboard uses, plus tag_line for display
       const { data, error } = await supabase
         .from('player_summaries')
-        .select('game_name, tag_line');
+        .select('game_name, tag_line, avg_impact_score, region')
+        .order('avg_impact_score', { ascending: false });
 
       if (error) {
         console.log('Error loading rival options from player_summaries:', error);
@@ -234,10 +237,8 @@ const FindRivalScreen: React.FC = () => {
         return;
       }
 
-      // Only filter out players without a game_name
-      const validPlayers = (data ?? []).filter(player => player.game_name);
-
-      setRivalOptions(validPlayers as RivalOption[]);
+      // No filters - show all players from player_summaries
+      setRivalOptions((data ?? []) as RivalOption[]);
     } finally {
       setLoadingRivals(false);
     }
@@ -497,7 +498,7 @@ const FindRivalScreen: React.FC = () => {
                 ) : (
                   filteredRivals.map((opt) => (
                     <Pressable
-                      key={`${opt.game_name}-${opt.tag_line}`}
+                      key={`${opt.game_name}-${opt.tag_line || 'notag'}`}
                       style={styles.modalItem}
                       onPress={() => handleSelectRival(opt)}
                     >
