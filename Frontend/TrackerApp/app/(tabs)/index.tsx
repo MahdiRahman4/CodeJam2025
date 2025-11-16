@@ -11,24 +11,31 @@ import {
   Modal,
   Pressable,
   FlatList,
-  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 
-
 export default function CharacterScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const transition = useRef(new Animated.Value(0)).current; // fall animation
+  const cloneAnim = useRef(new Animated.Value(0)).current;   // horizontal clone animation
   const router = useRouter();
-  const [inventory, setInventory] = useState<Array<{ id: string; name: string; src: any }>>([]);
+
+  const [inventory, setInventory] = useState<
+    Array<{ id: string; name: string; src: any }>
+  >([]);
   const [showInventory, setShowInventory] = useState(false);
 
   type ChestState = "idle" | "moving" | "opening" | "opened" | "cooldown";
   const [leftChest, setLeftChest] = useState<ChestState>("moving");
   const [rightChest, setRightChest] = useState<ChestState>("moving");
 
-  const [leftNextAvailable, setLeftNextAvailable] = useState<number | null>(null);
-  const [rightNextAvailable, setRightNextAvailable] = useState<number | null>(null);
+  const [leftNextAvailable, setLeftNextAvailable] = useState<number | null>(
+    null
+  );
+  const [rightNextAvailable, setRightNextAvailable] = useState<number | null>(
+    null
+  );
 
   const LEFT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
   const RIGHT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -53,10 +60,17 @@ export default function CharacterScreen() {
     const minutes = Math.floor((totalSec % 3600) / 60);
     const seconds = totalSec % 60;
     if (days > 0) return `${days}d ${hours}h`;
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}:${String(seconds).padStart(2, "0")}`;
   };
 
-  const [popupItem, setPopupItem] = useState<{ id: string; name: string; src: any } | null>(null);
+  const [popupItem, setPopupItem] = useState<{
+    id: string;
+    name: string;
+    src: any;
+  } | null>(null);
 
   // assets
   const chestMoving = require("../../asset_AARI/Exported/Chest/CATS_GreyChest__moving_AARIALMA.gif");
@@ -66,9 +80,21 @@ export default function CharacterScreen() {
   const catGif = require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif");
 
   const itemPool = [
-    { id: "hat1", name: "Baseball Hat", src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif") },
-    { id: "beret", name: "Beret", src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Beret_AARIALMA.gif") },
-    { id: "straw", name: "Straw Hat", src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Strawhat_AARIALMA.gif") },
+    {
+      id: "hat1",
+      name: "Baseball Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Baseball_AARIALMA.gif"),
+    },
+    {
+      id: "beret",
+      name: "Beret",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Beret_AARIALMA.gif"),
+    },
+    {
+      id: "straw",
+      name: "Straw Hat",
+      src: require("../../asset_AARI/Exported/Hats/CATS_PinkCat_Strawhat_AARIALMA.gif"),
+    },
   ];
 
   // handle chest opening lifecycle
@@ -80,15 +106,12 @@ export default function CharacterScreen() {
       const next = now + LEFT_COOLDOWN_MS;
       setLeftNextAvailable(next);
       AsyncStorage.setItem(LEFT_KEY, String(next)).catch(() => {});
-      // after opening animation, reveal item
       setTimeout(() => {
         const item = itemPool[Math.floor(Math.random() * itemPool.length)];
         setPopupItem(item);
         setInventory((prev) => [...prev, item]);
         setLeftChest("opened");
-        // shortly after opened, switch to cooldown visual
         setTimeout(() => setLeftChest("cooldown"), 600);
-        // schedule flip back to moving when cooldown expires
         const ms = next - Date.now();
         if (ms > 0) setTimeout(() => setLeftChest("moving"), ms + 50);
       }, 1400);
@@ -163,7 +186,7 @@ export default function CharacterScreen() {
     (global as any).__resetChestTimers = resetTimers;
   }, []);
 
-  // reset to moving after opened for demo (or keep opened if desired)
+  // reset to moving after opened
   useEffect(() => {
     if (leftChest === "opened") {
       const t = setTimeout(() => setLeftChest("moving"), 3000);
@@ -182,10 +205,92 @@ export default function CharacterScreen() {
     transform: [{ translateX: shakeAnim }],
   };
 
+  // 🔸 ANIMATED POSITIONS for shared elements (0 = index layout, 1 = "towards rivals")
+  const namebarAnimatedStyle = {
+    position: "absolute" as const,
+    transform: [
+      {
+        translateY: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -30], // move up toward rivals title area
+        }),
+      },
+      {
+        scale: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.815, 0.815],
+        }),
+      },
+    ],
+  };
+
+  const circleAnimatedStyle = {
+    position: "absolute" as const,
+    transform: [
+      {
+        translateX: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 40], // small horizontal nudge
+        }),
+      },
+      {
+        translateY: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 600], // fall down
+        }),
+      },
+      {
+        scale: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.815, 1.1],
+        }),
+      },
+    ],
+  };
+
+  // 🔹 duplicate circle that appears at the bottom and slides right
+  const cloneCircleStyle = {
+    position: "absolute" as const,
+    opacity: cloneAnim,
+    transform: [
+      {
+        translateX: cloneAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [40, 275], // from where the main circle lands → to the right
+        }),
+      },
+      {
+        translateY: 600, // stay at bottom
+      },
+      {
+        scale: 1.1,
+      },
+    ],
+  };
+
+  const titleAnimatedStyle = {
+    transform: [
+      {
+        translateY: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -30],
+        }),
+      },
+      {
+        translateX: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -100],
+        }),
+      },
+    ],
+  };
+
   // simple sparkle effect made from animated dots
   const Sparkles = ({ size = 120 }: { size?: number }) => {
     const count = 6;
-    const anims = Array.from({ length: count }).map(() => useRef(new Animated.Value(0)).current);
+    const anims = Array.from({ length: count }).map(
+      () => useRef(new Animated.Value(0)).current
+    );
 
     useEffect(() => {
       const loops = anims.map((a, i) => {
@@ -194,9 +299,17 @@ export default function CharacterScreen() {
           Animated.sequence([
             Animated.delay(delay),
             Animated.parallel([
-              Animated.timing(a, { toValue: 1, duration: 400, useNativeDriver: true }),
+              Animated.timing(a, {
+                toValue: 1,
+                duration: 400,
+                useNativeDriver: true,
+              }),
             ]),
-            Animated.timing(a, { toValue: 0, duration: 400, useNativeDriver: true }),
+            Animated.timing(a, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
             Animated.delay(400),
           ])
         );
@@ -209,8 +322,14 @@ export default function CharacterScreen() {
       const a = anims[i];
       const left = Math.round(Math.random() * (size - 24));
       const top = Math.round(Math.random() * (size - 24));
-      const scale = a.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1.2] });
-      const opacity = a.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 1, 0] });
+      const scale = a.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.2, 1.2],
+      });
+      const opacity = a.interpolate({
+        inputRange: [0, 0.6, 1],
+        outputRange: [0, 1, 0],
+      });
       return (
         <Animated.View
           key={i}
@@ -232,22 +351,36 @@ export default function CharacterScreen() {
     return <View style={{ width: size, height: size }}>{spots}</View>;
   };
 
-  // swipe left → rival, swipe right → leaderboard
+  // 🔸 swipe left → animate (fall + clone slide) then go to rival
+  //    swipe right → straight to leaderboard
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => {
         const { dx, dy } = gesture;
-        // only start if mostly horizontal swipe
         return Math.abs(dx) > 10 && Math.abs(dy) < 10;
       },
       onPanResponderRelease: (_, gesture) => {
         const { dx } = gesture;
 
         if (dx < -50) {
-          // swipe left
-          router.push("/(tabs)/rival");
+          // sequence: fall down, then clone moves right
+          Animated.sequence([
+            Animated.timing(transition, {
+              toValue: 1,
+              duration: 1000, // fall duration
+              useNativeDriver: true,
+            }),
+            Animated.timing(cloneAnim, {
+              toValue: 1,
+              duration: 600, // horizontal move duration
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            transition.setValue(0);
+            cloneAnim.setValue(0);
+            router.push("/(tabs)/rival");
+          });
         } else if (dx > 50) {
-          // swipe right
           router.push("/(tabs)/leaderboard");
         }
       },
@@ -261,21 +394,40 @@ export default function CharacterScreen() {
         style={styles.imageBackground}
         resizeMode="contain"
       >
-        <Image
+        {/* namebar */}
+        <Animated.Image
           source={require("../../asset_AARI/Exported/Gachi/CATS_GachiBG_AARIALMANamebar BG.png")}
+          style={namebarAnimatedStyle}
         />
-        <Text
-          style={{
-            fontFamily: "PixelifySans_500Medium",
-            fontSize: 50,
-            position: "absolute",
-            top: 125,
-            left: 150,
-            color: "#471B2B",
-          }}
+
+        {/* main falling circle */}
+        <Animated.Image
+          source={require("../../asset_AARI/Exported/Rivals/CATS_GachiBG_AARIALMACircle.png")}
+          style={circleAnimatedStyle}
+        />
+
+        {/* duplicate circle that slides right at the bottom */}
+        <Animated.Image
+          source={require("../../asset_AARI/Exported/Rivals/CATS_GachiBG_AARIALMACircle.png")}
+          style={cloneCircleStyle}
+        />
+
+        {/* title */}
+        <Animated.Text
+          style={[
+            {
+              fontFamily: "PixelifySans_500Medium",
+              fontSize: 50,
+              position: "absolute",
+              top: 125,
+              left: 150,
+              color: "#471B2B",
+            },
+            titleAnimatedStyle,
+          ]}
         >
           Plants
-        </Text>
+        </Animated.Text>
 
         {/* Center cat (click to open inventory) */}
         <Pressable
@@ -302,16 +454,19 @@ export default function CharacterScreen() {
             </View>
           </View>
         )}
-
       </ImageBackground>
 
       {/* Bottom chest bar */}
       <View style={styles.chestBar}>
-        <TouchableOpacity
-          onPress={() => openChest("left")}
-          style={styles.chestSlot}
-        >
-          <View style={{ width: 110, height: 110, justifyContent: "center", alignItems: "center" }}>
+        <TouchableOpacity onPress={() => openChest("left")} style={styles.chestSlot}>
+          <View
+            style={{
+              width: 110,
+              height: 110,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             <Image
               source={
                 leftChest === "moving"
@@ -330,7 +485,9 @@ export default function CharacterScreen() {
             {leftChest === "cooldown" && <View style={styles.cooldownOverlay} />}
             {leftChest === "cooldown" && leftNextAvailable && (
               <View style={styles.countdownLabel} pointerEvents="none">
-                <Text style={styles.countdownText}>{formatRemaining(leftNextAvailable)}</Text>
+                <Text style={styles.countdownText}>
+                  {formatRemaining(leftNextAvailable)}
+                </Text>
               </View>
             )}
           </View>
@@ -338,11 +495,15 @@ export default function CharacterScreen() {
 
         <View style={styles.chestCenterSpacer} />
 
-        <TouchableOpacity
-          onPress={() => openChest("right")}
-          style={styles.chestSlot}
-        >
-          <View style={{ width: 110, height: 110, justifyContent: "center", alignItems: "center" }}>
+        <TouchableOpacity onPress={() => openChest("right")} style={styles.chestSlot}>
+          <View
+            style={{
+              width: 110,
+              height: 110,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             <Image
               source={
                 rightChest === "moving"
@@ -361,7 +522,9 @@ export default function CharacterScreen() {
             {rightChest === "cooldown" && <View style={styles.cooldownOverlay} />}
             {rightChest === "cooldown" && rightNextAvailable && (
               <View style={styles.countdownLabel} pointerEvents="none">
-                <Text style={styles.countdownText}>{formatRemaining(rightNextAvailable)}</Text>
+                <Text style={styles.countdownText}>
+                  {formatRemaining(rightNextAvailable)}
+                </Text>
               </View>
             )}
           </View>
@@ -384,7 +547,10 @@ export default function CharacterScreen() {
                 </View>
               )}
             />
-            <TouchableOpacity onPress={() => setShowInventory(false)} style={styles.modalClose}>
+            <TouchableOpacity
+              onPress={() => setShowInventory(false)}
+              style={styles.modalClose}
+            >
               <Text style={{ color: "white" }}>Close</Text>
             </TouchableOpacity>
           </View>
