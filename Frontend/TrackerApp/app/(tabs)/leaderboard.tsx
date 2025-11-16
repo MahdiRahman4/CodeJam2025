@@ -79,7 +79,7 @@ const TabTwoScreen = () => {
         }
 
         const { data: mySummary, error: summaryError } = await supabase
-          .from('summaries')
+          .from('player_summaries')
           .select('region')
           .eq('game_name', riotID)
           .maybeSingle();
@@ -94,7 +94,7 @@ const TabTwoScreen = () => {
         setRegion(regionValue);
 
         let query = supabase
-          .from('summaries')
+          .from('player_summaries')
           .select(
             'game_name, avg_damage, avg_vision_score, avg_impact_score, avg_cs, avg_gold, avg_kda, region'
           )
@@ -161,10 +161,6 @@ const TabTwoScreen = () => {
             )}
           </View>
         </View>
-
-        <Pressable onPress={LogOut}>
-          <Text style={style.logoutText}>Log Out</Text>
-        </Pressable>
       </View>
     </ImageBackground>
   );
