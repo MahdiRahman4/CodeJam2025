@@ -43,6 +43,8 @@ const FindRivalScreen: React.FC = () => {
   ).current;
   const [currentProfile, setCurrentProfile] = useState<ProfileRow | null>(null);
   const [progressValues, setProgressValues] = useState<number[]>([0.3, 0.3, 0.3, 0.3, 0.3]);
+  const [playerData1, setPlayerData1] = useState<any>(null);
+  const [playerData2, setPlayerData2] = useState<any>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -127,6 +129,10 @@ const FindRivalScreen: React.FC = () => {
           console.log('One or both players not found in database');
           return;
         }
+
+        // Store player data in state
+        setPlayerData1(data1);
+        setPlayerData2(data2);
 
         // Calculate averages
         const avgStats: PlayerStats = {
@@ -260,6 +266,26 @@ const FindRivalScreen: React.FC = () => {
       </View>
       <Text style={styles.titleText}>Plants</Text>
       <Text style={styles.subText}>Last 5 Games</Text>
+      <Text style={[
+        styles.impactText,
+        { color: playerData1 && playerData2 
+          ? (playerData1.avg_impact_score > playerData2.avg_impact_score ? '#22c55e' : '#ef4444')
+          : '#471B2B' }
+      ]}>
+        {playerData1 && playerData2 
+          ? (playerData1.avg_impact_score > playerData2.avg_impact_score ? '>' : '<')
+          : '-'}
+      </Text>
+      <Image
+        source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_PinkCat_Headshot_Default_AARIALMA.gif')}
+        style={styles.leftCatImage}
+        resizeMode="contain"
+      />
+      <Image
+        source={require('../../asset_AARI/Exported/Hats/Headshots/CATS_BlueCat_Headshot_Default_AARIALMA.gif')}
+        style={styles.rightCatImage}
+        resizeMode="contain"
+      />
       <FloatingButton useBack={true} />
     </View>
   );
@@ -356,6 +382,18 @@ const styles = StyleSheet.create({
     zIndex: 5,
     textAlign: "center",
   },
+  impactText: {
+    position: "absolute",
+    fontFamily: "Jersey10_400Regular",
+    fontSize: 90,
+    color: "#471B2B",
+    top: "8%",
+    marginTop: 625,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    textAlign: "center",
+  },
   progressContainer: {
     position: "absolute",
     top: "35%",
@@ -380,5 +418,24 @@ const styles = StyleSheet.create({
     color: "#471B2B",
     marginBottom: 4,
     textAlign: "center",
+  },
+  leftCatImage: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    top: "8%",
+    marginTop: 525,
+    left: "-1%",
+    zIndex: 5,
+    transform: [{ scaleX: -1 }],
+  },
+  rightCatImage: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    top: "8%",
+    marginTop: 525,
+    right: "-1%",
+    zIndex: 5,
   },
 });
