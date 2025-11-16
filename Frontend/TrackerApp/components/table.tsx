@@ -1,7 +1,6 @@
 // components/table.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-
 export interface StatsRow {
   name: string;
   avg_impact_score: number;
@@ -15,7 +14,9 @@ export interface StatsRow {
 interface StatsTableProps {
   data?: StatsRow[];
   title?: string;
+  highlightName?: string; // 👈 NEW: who to pin at bottom
 }
+
 
 // just some demo data if no data prop is passed
 const defaultData: StatsRow[] = [
@@ -31,11 +32,11 @@ const defaultData: StatsRow[] = [
 ];
 
 // 👑 player you want pinned at the bottom
-const HIGHLIGHT_PLAYER = 'T3rroth';
 
 const StatsTable: React.FC<StatsTableProps> = ({
   data,
   title = 'Montreal Leaderboard',
+  highlightName,
 }) => {
   const [showRivals, setShowRivals] = useState(false);
 
@@ -46,21 +47,26 @@ const StatsTable: React.FC<StatsTableProps> = ({
     (a, b) => b.avg_impact_score - a.avg_impact_score
   );
 
-  // split out pinned player (Spech), case-insensitive
   const normalize = (s: string | null | undefined) =>
     (s ?? '').trim().toLowerCase();
 
+  // if highlightName is not passed, no pinned row
   const pinnedRow =
-    sorted.find((row) => normalize(row.name) === normalize(HIGHLIGHT_PLAYER)) ||
-    null;
+    highlightName
+      ? sorted.find(
+          (row) => normalize(row.name) === normalize(highlightName)
+        ) || null
+      : null;
 
   const rowsToShow = pinnedRow
     ? sorted.filter(
-        (row) => normalize(row.name) !== normalize(HIGHLIGHT_PLAYER)
+        (row) => normalize(row.name) !== normalize(highlightName)
       )
     : sorted;
 
   const currentTitle = title;
+console.log('👉 highlightName =', highlightName);
+console.log('👉 names in table =', sorted.map(r => r.name));
 
   return (
     <View style={styles.card}>

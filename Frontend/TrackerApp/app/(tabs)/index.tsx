@@ -14,12 +14,17 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { supabase } from '@/lib/supabase';
+
 
 export default function CharacterScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
-  const transition = useRef(new Animated.Value(0)).current; // fall animation
-  const cloneAnim = useRef(new Animated.Value(0)).current;   // horizontal clone animation
+  const transition = useRef(new Animated.Value(0)).current;
+
   const router = useRouter();
+
+
 
   const [inventory, setInventory] = useState<
     Array<{ id: string; name: string; src: any }>
@@ -97,6 +102,8 @@ export default function CharacterScreen() {
 const [equippedHatId, setEquippedHatId] = useState<string | null>(null);
 // force cat gif to "reload" by changing this key
 const [catImageKey, setCatImageKey] = useState(0);
+const [playerName, setPlayerName] = useState<string | null>(null);
+
 
 
 const hatPool = [
@@ -232,6 +239,40 @@ const openChest = (side: "left" | "right") => {
       }
     })();
   }, []);
+useEffect(() => {
+  const loadPlayerName = async () => {
+    try {
+      // get current auth user
+      const { data: authData, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !authData?.user) {
+        console.log('Not logged in, using default name');
+        return;
+      }
+
+      const uid = authData.user.id;
+
+      // read riotID from profiles
+      const { data: profile, error: pErr } = await supabase
+        .from('profiles')
+        .select('riotID')
+        .eq('id', uid)
+        .single();
+
+      if (pErr || !profile?.riotID) {
+        console.log('No riotID on profile, using default name');
+        return;
+      }
+
+      // "Plants#333" → "Plants"
+      const gameNameOnly = (profile.riotID as string).split('#')[0];
+      setPlayerName(gameNameOnly);
+    } catch (e) {
+      console.log('Failed to load player name', e);
+    }
+  };
+
+  loadPlayerName();
+}, []);
 
   // Debug: reset timers
 const resetTimers = async () => {
@@ -310,13 +351,13 @@ const resetTimers = async () => {
       {
         translateX: transition.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, 40], // small horizontal nudge
+          outputRange: [0, 40], 
         }),
       },
       {
         translateY: transition.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, 600], // fall down
+          outputRange: [0, 600], 
         }),
       },
       {
@@ -328,25 +369,6 @@ const resetTimers = async () => {
     ],
   };
 
-  // 🔹 duplicate circle that appears at the bottom and slides right
-  const cloneCircleStyle = {
-    position: "absolute" as const,
-    opacity: cloneAnim,
-    transform: [
-      {
-        translateX: cloneAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [40, 275], // from where the main circle lands → to the right
-        }),
-      },
-      {
-        translateY: 600, // stay at bottom
-      },
-      {
-        scale: 1.1,
-      },
-    ],
-  };
 
   const titleAnimatedStyle = {
     transform: [
@@ -430,19 +452,14 @@ const resetTimers = async () => {
 
     return <View style={{ width: size, height: size }}>{spots}</View>;
   };
-
-  // 🔸 swipe left → animate (fall + clone slide) then go to rival
-  //    swipe right → straight to leaderboard
  const panResponder = PanResponder.create({
   onMoveShouldSetPanResponder: (_, gesture) => {
-    // 🔥 block swipes if inventory or popup is open
     if (showInventory || popupItem) return false;
 
     const { dx, dy } = gesture;
     return Math.abs(dx) > 10 && Math.abs(dy) < 10;
   },
   onPanResponderRelease: (_, gesture) => {
-    // 🔥 safety check again
     if (showInventory || popupItem) return;
 
     const { dx } = gesture;
@@ -463,31 +480,46 @@ const resetTimers = async () => {
         style={styles.imageBackground}
         resizeMode="contain"
       >
+{/* swipe edge hints */}
+<Animated.View
+  pointerEvents="none"
+>
+  <LinearGradient
+    colors={["transparent", "rgba(255,255,255,0.4)", "transparent"]}
+    start={{ x: 1, y: 0.5 }}
+    end={{ x: 0, y: 0.5 }}
+    style={StyleSheet.absoluteFill}
+  />
+</Animated.View>
 
-        {/* duplicate circle that slides right at the bottom */}
-        <Animated.Image
-          source={require("../../asset_AARI/Exported/Rivals/CATS_GachiBG_AARIALMACircle.png")}
-          style={cloneCircleStyle}
-        />
+<Animated.View
+  pointerEvents="none"
 
-        {/* title */}
-        <Animated.Text
-          style={[
-            {
-              fontFamily: "PixelifySans_500Medium",
-              fontSize: 50,
-              position: "absolute",
-              top: 125,
-              left: 150,
-              color: "#471B2B",
-            },
-            titleAnimatedStyle,
-          ]}
-        >
-          Plants
-        </Animated.Text>
+>
+  <LinearGradient
+    colors={["transparent", "rgba(255,255,255,0.4)", "transparent"]}
+    start={{ x: 0, y: 0.5 }}
+    end={{ x: 1, y: 0.5 }}
+    style={StyleSheet.absoluteFill}
+  />
+</Animated.View>
 
-        {/* Center cat (click to open inventory) */}
+       <Animated.Text
+  style={[
+    {
+      fontFamily: "PixelifySans_500Medium",
+      fontSize: 30,
+      position: "absolute",
+      top: 135,
+      left: 150,
+      color: "#471B2B",
+    },
+    titleAnimatedStyle,
+  ]}
+>
+  {playerName ?? "Plants"}
+</Animated.Text>
+
         <Pressable
   style={styles.catContainer}
   onPress={() => setShowInventory(true)}
@@ -917,6 +949,30 @@ hatImage: {
   resizeMode: "contain",
   transform: [{ scale: 4 }],  // tweak or remove if too big
 },
+edgeGlowLeft: {
+  position: "absolute",
+  left: 0,
+  top: "35%",          // vertical position (middle-ish)
+  width: 26,           // how thick the glow is
+  height: "30%",       // how tall it is
+  borderTopRightRadius: 16,
+  borderBottomRightRadius: 16,
+  overflow: "hidden",
+  zIndex: 5,
+},
+
+edgeGlowRight: {
+  position: "absolute",
+  right: 0,
+  top: "35%",
+  width: 26,
+  height: "30%",
+  borderTopLeftRadius: 16,
+  borderBottomLeftRadius: 16,
+  overflow: "hidden",
+  zIndex: 5,
+},
+
 
 
 

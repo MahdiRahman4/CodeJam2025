@@ -35,6 +35,8 @@ const TabTwoScreen = () => {
   const [rows, setRows] = useState<StatsRow[]>([]);
   const [region, setRegion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [myName, setMyName] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchSummaries = async () => {
@@ -68,13 +70,19 @@ const TabTwoScreen = () => {
         }
 
         const riotID = profile.riotID as string;
+        const gameNameOnly = riotID.split('#')[0]; // "MRTrashed#NA1" -> "MRTrashed"
+setMyName(gameNameOnly);
+
 
         // User region from player_summaries
-        const { data: mySummary, error: summaryErr } = await supabase
-          .from('player_summaries')
-          .select('region')
-          .eq('game_name', riotID)
-          .maybeSingle();
+       const { data: mySummary, error: summaryErr } = await supabase
+  .from('player_summaries')
+  .select(
+    'game_name, avg_impact_score, avg_kda, avg_damage, avg_cs, avg_gold, avg_vision_score, region'
+  )
+  .eq('game_name', riotID)
+  .maybeSingle();
+
 
         if (summaryErr) {
           Alert.alert('Error', 'Could not determine your region');
@@ -114,6 +122,29 @@ const TabTwoScreen = () => {
             avg_gold: row.avg_gold ?? 0,
             avg_vision_score: row.avg_vision_score ?? 0,
           })) ?? [];
+          // helper to normalize names
+const normalizeName = (s: string | null | undefined) =>
+  (s ?? '').trim().toLowerCase();
+
+// If mySummary exists but I'm not in mapped (lb), add myself
+if (mySummary) {
+  const alreadyIn = mapped.some(
+    (row) => normalizeName(row.name) === normalizeName(mySummary.game_name)
+  );
+
+  if (!alreadyIn) {
+    mapped.push({
+      name: mySummary.game_name,
+      avg_impact_score: (mySummary.avg_impact_score ?? 0) * 10,
+      avg_kda: mySummary.avg_kda ?? 0,
+      avg_damage: mySummary.avg_damage ?? 0,
+      avg_cs: mySummary.avg_cs ?? 0,
+      avg_gold: mySummary.avg_gold ?? 0,
+      avg_vision_score: mySummary.avg_vision_score ?? 0,
+    });
+  }
+}
+
 
         // safety sort by score desc
         mapped.sort((a, b) => b.avg_impact_score - a.avg_impact_score);
@@ -142,10 +173,15 @@ const TabTwoScreen = () => {
         <View style={styles.leaderboardContainer}>
           <View style={styles.tableWrapper}>
             {loading ? (
-              <ActivityIndicator />
-            ) : (
-              <StatsTable data={rows} title={title} />
-            )}
+  <ActivityIndicator />
+) : (
+  <StatsTable
+    data={rows}
+    title={title}
+    highlightName={myName || undefined} // 👈 pass current player
+  />
+)}
+
           </View>
         </View>
 
@@ -184,7 +220,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 10,
     backgroundColor: '#471B2B',
     paddingHorizontal: 24,
     paddingVertical: 12,
